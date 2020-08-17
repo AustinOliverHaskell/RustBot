@@ -11,20 +11,21 @@ pub mod BasicShapes { pub mod Square; }
 
 fn main() {
 
-    let pageWidth: i32 = 100;
-    let pageHeight: i32 = 100;
+    let pageWidth: i32 = 200;
+    let pageHeight: i32 = 3000;
 
     let mut document = Document::new()
         .set("viewBox", (0, 0, pageWidth, pageHeight));
 
     let mut vec: Vec<BasicShapes::Square::Square> = Vec::new();
-    for _ in 0..100 {
-        let size = rand::random::<u32>() as i32 % 50;
-        vec.push( BasicShapes::Square::make_square(
+    for _ in 0..10 {
+        let mut size = rand::random::<u32>() as i32 % 50 + 10;
+        vec.push( BasicShapes::Square::make_square_with_infill(
             size, 
             size, 
             rand::random::<u32>() as i32 % pageWidth + 10, 
-            rand::random::<u32>() as i32 % pageHeight + 10
+            rand::random::<u32>() as i32 % pageHeight + 10,
+            10
         ));
     }
 
@@ -33,7 +34,7 @@ fn main() {
             .add( Path::new()
             .set("fill", "none")
             .set("stroke", pick_color())
-            .set("stroke-width", 0.25)
+            .set("stroke-width", 2)
             .set("d", s.traits.shapeData));
     }
 
