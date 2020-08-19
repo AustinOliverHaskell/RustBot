@@ -10,5 +10,6 @@ pub struct Shape {
 }
 
 pub trait ShapeContract {
-    fn fillShapeData(self: Self);
+    fn make(width: u32, height: u32, x: i32, y: i32);
+    fn make_with_infill(width: u32, height: u32, x: i32, y: i32, density: i32);
 }

@@ -12,20 +12,21 @@ pub mod BasicShapes { pub mod Square; }
 fn main() {
 
     let pageWidth: i32 = 200;
-    let pageHeight: i32 = 3000;
+    let pageHeight: i32 = 100;
 
     let mut document = Document::new()
         .set("viewBox", (0, 0, pageWidth, pageHeight));
 
     let mut vec: Vec<BasicShapes::Square::Square> = Vec::new();
     for _ in 0..10 {
-        let mut size = rand::random::<u32>() as i32 % 50 + 10;
-        vec.push( BasicShapes::Square::make_square_with_infill(
-            size, 
-            size, 
-            rand::random::<u32>() as i32 % pageWidth + 10, 
-            rand::random::<u32>() as i32 % pageHeight + 10,
-            10
+        let size = rand::random::<u32>() % 50 + 10;
+        vec.push( 
+            BasicShapes::Square::make_square_with_infill(
+                size, 
+                size, 
+                rand::random::<u32>() as i32 % pageWidth + 10, 
+                rand::random::<u32>() as i32 % pageHeight + 10,
+                10
         ));
     }
 
