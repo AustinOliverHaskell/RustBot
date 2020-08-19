@@ -131,6 +131,7 @@ fn zip_line(a: Vec<(u32, u32)>, b: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
         return line_zipped;
     }
 
+    // WIP, doesnt work correct atm - Austin Haskell
     let mut ping_pong: usize = 0;
     for point in a {
         print!("Pushing point: {:?}", point);
@@ -151,12 +152,18 @@ fn zip_line(a: Vec<(u32, u32)>, b: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
 }
 
 #[test]
+fn midpoint_calculation_is_equal() {
+    assert_eq!(midpoint((10, 10), (20, 20)), (15, 15));
+}
+
+#[test]
 fn segment_line_under_test() {
     let segmentedLine: Vec<(u32, u32)> = segment_line((0, 0), (20, 0), 10);
-
     let expectedLine: Vec<(u32, u32)> = vec![(0,0), (5,0), (7, 0), (10,0), (15, 0), (20,0)];
 
     assert_eq!(segmentedLine, expectedLine);
 }
+
+
 
 
