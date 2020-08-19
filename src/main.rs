@@ -9,6 +9,9 @@ use svg::node::element::path::Data;
 pub mod Shape;
 pub mod BasicShapes { pub mod Square; }
 
+use Shape::ShapeContract;
+use BasicShapes::Square::*;
+
 fn main() {
 
     let pageWidth: i32 = 200;
@@ -21,7 +24,7 @@ fn main() {
     for _ in 0..10 {
         let size = rand::random::<u32>() % 50 + 10;
         vec.push( 
-            BasicShapes::Square::make_square_with_infill(
+            Square::make_with_infill(
                 size, 
                 size, 
                 rand::random::<u32>() as i32 % pageWidth + 10, 

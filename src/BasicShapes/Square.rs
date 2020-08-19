@@ -13,77 +13,71 @@ pub struct Square {
 }
 
 impl ShapeContract for Square {
-    fn fillShapeData(self: Self) {
-
+    fn make(width: u32, height: u32, x: i32, y: i32) -> Square {
+        let shape = Square {
+            height: height,
+            width: width,
+            x: x,
+            y: y,
+            traits: Shape {
+                depth: 0,
+                infill: 0.0,
+                shapeData: Data::new()
+                    .move_to((x, y))
+                    .line_by((0, -(height as i32)/2))
+                    .line_by((width/2, 0))
+                    .line_by((0, height/2))
+                    .close(),
+                color: String::from("black")
+            }
+        };
+    
+        shape
     }
-}
 
-// Todo: Make this more formalized, clean up the stream of conciousness code, and put behind a trait - Austin Haskell
-pub fn make_square(width: u32, height: u32, x: i32, y: i32) -> Square {
-    let shape = Square {
-        height: height,
-        width: width,
-        x: x,
-        y: y,
-        traits: Shape {
-            depth: 0,
-            infill: 0.0,
-            shapeData: Data::new()
-                .move_to((x, y))
-                .line_by((0, -(height as i32)/2))
-                .line_by((width/2, 0))
-                .line_by((0, height/2))
-                .close(),
-            color: String::from("black")
+    fn make_with_infill(width: u32, height: u32, x: i32, y: i32, density: i32) -> Square {
+        let mut shape = Square {
+            height: height,
+            width: width,
+            x: x,
+            y: y,
+            traits: Shape {
+                depth: 0,
+                infill: 0.0,
+                shapeData: Data::new(),
+                color: String::from("black")
+            }
+        };
+    
+        #[derive(Debug, PartialEq)]
+        struct RawShape {
+            pub points: Vec<(u32, u32)>
         }
-    };
-
-    shape
-}
-
-// Todo: Make this more formalized, clean up the stream of conciousness code, and put behind a trait - Austin Haskell
-pub fn make_square_with_infill(width: u32, height: u32, x: i32, y: i32, density: i32) -> Square {
-    let mut shape = Square {
-        height: height,
-        width: width,
-        x: x,
-        y: y,
-        traits: Shape {
-            depth: 0,
-            infill: 0.0,
-            shapeData: Data::new(),
-            color: String::from("black")
+    
+        let mut pointCloud = RawShape {
+            points: Vec::new()
+        };
+    
+        let segments = segment_line((0,0), (width, 0), density);
+        let segments2 = segment_line((0,0), (0, height), density);
+    
+        let zippedLine = zip_line(segments, segments2);
+    
+        println!("Segmenting a line with a width of {:?}", width);
+        for item in zippedLine {
+            pointCloud.points.push(item);
         }
-    };
-
-    #[derive(Debug, PartialEq)]
-    struct RawShape {
-        pub points: Vec<(u32, u32)>
+    
+        shape.traits.shapeData = Data::new()
+            .move_to((x, y));
+    
+        for p in pointCloud.points {
+            shape.traits.shapeData = shape.traits.shapeData
+                .line_by(p);
+        }
+    
+        shape
     }
-
-    let mut pointCloud = RawShape {
-        points: Vec::new()
-    };
-
-    let segments = segment_line((0,0), (width, 0), density);
-    let segments2 = segment_line((0,0), (0, height), density);
-
-    let zippedLine = zip_line(segments, segments2);
-
-    println!("Segmenting a line with a width of {:?}", width);
-    for item in zippedLine {
-        pointCloud.points.push(item);
-    }
-
-    shape.traits.shapeData = Data::new()
-        .move_to((x, y));
-
-    for p in pointCloud.points {
-        shape.traits.shapeData = shape.traits.shapeData
-            .line_by(p);
-    }
-
-    shape
 }
 
 fn midpoint(p1: (u32, u32), p2: (u32, u32)) -> (u32, u32) {
@@ -160,7 +154,7 @@ fn zip_line(a: Vec<(u32, u32)>, b: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
 fn segment_line_under_test() {
     let segmentedLine: Vec<(u32, u32)> = segment_line((0, 0), (20, 0), 10);
 
-    let expectedLine: Vec<(u32, u32)> = vec![(0,0), (2, 0), (3, 0), (5, 0), (10,0), (15, 0), (16, 0), (18, 0), (20,0)];
+    let expectedLine: Vec<(u32, u32)> = vec![(0,0), (5,0), (7, 0), (10,0), (15, 0), (20,0)];
 
     assert_eq!(segmentedLine, expectedLine);
 }
