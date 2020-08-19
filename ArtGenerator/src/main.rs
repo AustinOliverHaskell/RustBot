@@ -21,15 +21,15 @@ fn main() {
         .set("viewBox", (0, 0, pageWidth, pageHeight));
 
     let mut vec: Vec<BasicShapes::Square::Square> = Vec::new();
-    for _ in 0..10 {
-        let size = rand::random::<u32>() % 50 + 10;
+    for _ in 0..150 {
+        let size = rand::random::<u32>() % 20 + 10;
         vec.push( 
             Square::make_with_infill(
                 size, 
                 size, 
                 rand::random::<u32>() as i32 % pageWidth + 10, 
                 rand::random::<u32>() as i32 % pageHeight + 10,
-                10
+                1
         ));
     }
 
@@ -38,7 +38,7 @@ fn main() {
             .add( Path::new()
             .set("fill", "none")
             .set("stroke", pick_color())
-            .set("stroke-width", 2)
+            .set("stroke-width", 0.5)
             .set("d", s.traits.shapeData));
     }
 
