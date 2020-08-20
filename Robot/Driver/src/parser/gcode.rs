@@ -53,7 +53,7 @@ pub fn construct_gcode_from_line(line: Vec<&str>) -> Result<GCode, &str> {
                 }
                 code.command = parsed_command.to_string();
             },
-            'M' => return Err("Command has no implementation"),
+            'M' => return Err("Command has no implementation"), // Todo: Figure out which M commands we should support - Austin Haskell
             _ => continue
         }
     }
