@@ -12,3 +12,7 @@ Cargo.lock
 ArtGenerator/image.svg
 
 image.svg
+
+Robot/Driver/target/
+
+*.svg
