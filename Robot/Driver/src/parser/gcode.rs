@@ -17,50 +17,49 @@ impl GCode {
     
         for line in raw.split(LINE_ENDING) {
 
-            if line.starts_with(';') || line.len() < 1 {
+            if line.len() < 1 || (!line.starts_with('G') && !line.starts_with('M')) {
                 continue; 
             }
 
             let parsed_line: Vec<&str> = filter_out_invalids(line.split(' ').collect());
-            match construct_gcode_from_line(parsed_line) {
+            match GCode::construct_gcode_from_line(parsed_line) {
                 Ok(code) => parsed_values.push(code),
                 Err(_) => continue
             }
         }
         parsed_values
     }
-}
 
-pub fn construct_gcode_from_line(line: Vec<&str>) -> Result<GCode, &str> {
-    let mut code = GCode {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-        command: String::from("")
-    };
-    let supported_g_codes: Vec<&str> = vec!["G0", "G1", "G10"];
-
-    for parsed_command in line {
-
-        let first_letter = parsed_command.chars().next().unwrap_or_default();
-        match first_letter {
-            'X' => code.x = ignore_letter_and_parse(parsed_command),
-            'Y' => code.y = ignore_letter_and_parse(parsed_command),
-            'Z' => code.z = ignore_letter_and_parse(parsed_command),
-            'G' => {
-                if !supported_g_codes.contains(&parsed_command) {
-                    return Err("GCode command not supported");
-                }
-                code.command = parsed_command.to_string();
-            },
-            'M' => return Err("Command has no implementation"), // Todo: Figure out which M commands we should support - Austin Haskell
-            _ => continue
+    pub fn construct_gcode_from_line(line: Vec<&str>) -> Result<GCode, &str> {
+        let mut code = GCode {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            command: String::from("")
+        };
+        let supported_g_codes: Vec<&str> = vec!["G0", "G1", "G10"];
+    
+        for parsed_command in line {
+    
+            let first_letter = parsed_command.chars().next().unwrap_or_default();
+            match first_letter {
+                'X' => code.x = ignore_letter_and_parse(parsed_command),
+                'Y' => code.y = ignore_letter_and_parse(parsed_command),
+                'Z' => code.z = ignore_letter_and_parse(parsed_command),
+                'G' => {
+                    if !supported_g_codes.contains(&parsed_command) {
+                        return Err("GCode command not supported");
+                    }
+                    code.command = parsed_command.to_string();
+                },
+                'M' => return Err("Command has no implementation"), // Todo: Figure out which M commands we should support - Austin Haskell
+                _ => continue
+            }
         }
+    
+        Ok(code)
     }
-
-    Ok(code)
 }
-
 
 fn filter_out_invalids(line: Vec<&str>) -> Vec<&str> {
 
@@ -120,9 +119,7 @@ fn deserialize_comments_ignored_deserializes() {
 #[test]
 fn deserialize_commands_without_xyz_deserializes() {
     let result = GCode::deserialize(&String::from(
-        "G21         ; Set units to mm
-         G90         ; Absolute positioning
-         G1          ; Move to clearance level"));
+        "G1"));
 
     assert_eq!(result.len(), 1);
 }
