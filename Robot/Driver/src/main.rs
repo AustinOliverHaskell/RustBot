@@ -9,15 +9,15 @@ use translator::gcode_translator::*;
 use robot::*;
 
 fn main() {
-    let rawdata: String = fs::read_to_string("C:\\Users\\austi\\Desktop\\Rust Projects\\SVG_Art_Generator\\RustArt\\Robot\\Driver\\example-gcode\\test001.gcode")
+    let rawdata: String = fs::read_to_string("/home/austinhaskell/Documents/Rust/RustSVGArt/Robot/Driver/example-gcode/test001.gcode")
         .expect("Unable to read the file");
-    let commands = GCode::deserialize(&rawdata);
+    let raw_commands = GCode::deserialize(&rawdata);
 
-    for command in commands {
+    for command in &raw_commands {
         println!("{:?}", command);
     }
 
-    let robot = Robot::new(0.0);
+    let robot = Robot::new(0.0, 100.0, 100.0);
 
-
+    let commands = translator::gcode_translator::translate_to_internal_command_list(&raw_commands);
 }
