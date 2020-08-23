@@ -3,7 +3,7 @@ const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n"; 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GCode {
     pub command: String,
     pub x: f32,
