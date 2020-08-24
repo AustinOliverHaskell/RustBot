@@ -5,11 +5,14 @@
 use crate::robot::Command;
 use crate::parser::gcode::GCode;
 
+// Todo: Optomize this and maybe the calling code. Could do some loop unrolling to make sure there's not a cache miss - Austin Haskell
+// I'm worried this is going to be really slow with big files, maybe this translation should happen on a laptop rather than the raspberry pi zero
 pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (f32, f32)) -> Vec<Command> {
 
     struct OrderedGCode {
-        command: GCode,
-        order: u32         // We have to preserve order while splitting - Austin Haskell
+        pub command: GCode,
+        pub order: u32,         // We have to preserve order while splitting - Austin Haskell
+        pub quadrant: (u16, u16)
     }
 
     // After some thought this will need to be able to split a gcode command across boundries.
@@ -38,23 +41,38 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
     let mut prev_code: Option<&GCode> = None;
     let mut order_num: u32 = 0;
     for code in gcode_list {
-
+        
+        // First iteration
+        // Todo: This is going to skip adding the first command to the list
         if prev_code.is_none() {
             prev_code = Some(code);
-            continue; // First iteration
+            continue; 
         }
 
         if does_boundary_cross_occour((prev_code.unwrap(), code), print_area) {
-            commands_that_cross_boundaries.push(OrderedGCode {
-                command: code.clone(),
-                order: order_num
-            });
+
+
+
+            commands_that_cross_boundaries.push(
+                OrderedGCode {
+                    command: code.clone(),
+                    order: order_num,
+                    quadrant: calc_quadrant(code, print_area)
+                }
+            );
+
+            println!("Boundary Cross!");
         } else {
-            commands_that_dont_cross.push (OrderedGCode {
-                command: code.clone(),
-                order: order_num
-            });
+            commands_that_dont_cross.push (
+                OrderedGCode {
+                    command: code.clone(),
+                    order: order_num,
+                    quadrant: calc_quadrant(code, print_area)
+                }
+            );
         }
+
+
 
         order_num += 1;
         prev_code = Some(code);
@@ -64,7 +82,6 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
     final_command_list
 }
 
-// Todo: Optomize this and maybe the calling code. Could do some loop unrolling to make sure there's not a cache miss - Austin Haskell
 fn does_boundary_cross_occour(commands: (&GCode, &GCode), print_area: (f32, f32)) -> bool {
     calc_quadrant(commands.0, print_area) != calc_quadrant(commands.1, print_area)
 }
@@ -74,8 +91,20 @@ fn calc_quadrant(command: &GCode, print_area: (f32, f32)) -> (u16, u16) {
     ((command.x as f32 / print_area.0) as u16, (command.y as f32 / print_area.1) as u16)
 }
 
+fn split_gcode_at_quadrant_line(commands: (&GCode, &GCode), print_area: (f32, f32)) -> Vec<GCode> {
+    
+    
+
+    let codes: Vec<GCode> = Vec::new();
+    codes
+}
 
 
+
+
+
+
+// ----- Unit tests ----- 
 #[test]
 fn calc_quadrant_calculates() {
     let code = GCode {
@@ -127,3 +156,14 @@ fn boundary_cross_does_not_occour() {
 
     assert_eq!(false, does_boundary_cross_occour((&code1, &code2), (10.5, 10.5)))
 }
+
+#[test]
+fn split_gcode_across_multiple_boundaries() {
+    assert_eq!(true, false)
+}
+
+#[test]
+fn split_gcode_across_boundary() {
+    assert_eq!(true, false)
+}
+
