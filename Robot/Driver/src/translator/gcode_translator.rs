@@ -50,8 +50,19 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
         }
 
         if does_boundary_cross_occour((prev_code.unwrap(), code), print_area) {
-
-
+            // Note: We're going to have to add in some pen lifts here, imagine if we're drawing a triangle
+            //  and one of the tips of the triangle goes into another quadrant. A pen lift needs to be added
+            //  so the triangle doesnt end up with a flat line at the top. - Austin Haskell
+            for item in split_gcode_at_quadrant_line((prev_code.unwrap(), code), print_area) {
+                commands_that_cross_boundaries.push(
+                    OrderedGCode {
+                        command: item.clone(),
+                        order: order_num,
+                        quadrant: calc_quadrant(&item, print_area)
+                    }
+                );
+                order_num += 1;
+            }
 
             commands_that_cross_boundaries.push(
                 OrderedGCode {
@@ -60,8 +71,6 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
                     quadrant: calc_quadrant(code, print_area)
                 }
             );
-
-            println!("Boundary Cross!");
         } else {
             commands_that_dont_cross.push (
                 OrderedGCode {
@@ -71,8 +80,6 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
                 }
             );
         }
-
-
 
         order_num += 1;
         prev_code = Some(code);
@@ -93,15 +100,61 @@ fn calc_quadrant(command: &GCode, print_area: (f32, f32)) -> (u16, u16) {
 
 fn split_gcode_at_quadrant_line(commands: (&GCode, &GCode), print_area: (f32, f32)) -> Vec<GCode> {
     
+    let start_quad = calc_quadrant(commands.0, print_area);
+    let end_quad = calc_quadrant(commands.1, print_area);
+
+    let quad_distance = (diff((start_quad.0, end_quad.0)), diff((start_quad.1, end_quad.1)));
+
+    if quad_distance == (0, 0) {
+        return Vec::new(); // Nothing to do here - Austin Haskell
+    }
+
+    // This represents the lower left and upper right coordanate of each square quadrant - Austin Haskell
+    let mut quad_bounds: Vec<((f32, f32), (f32, f32))> = Vec::new();
+
+    let mut x_bound: u16 = 0;
+    let mut y_bound: u16 = 0;
+    while y_bound <= quad_distance.1 {
+        while x_bound <= quad_distance.0 {
+
+            quad_bounds.push((
+                (print_area.0 * x_bound as f32, print_area.1 * y_bound as f32), 
+                (print_area.0, 0.0)));
+
+            x_bound += 1;
+        }
+
+        y_bound += 1;
+    }
     
 
+    //  ----- ----- -----
+    // |  A  |  B  |  C  |
+    // |     |     |     |
+    //  -----+-----+-----
+    // |  D  |  E  |  F  |
+    // |     |     |     |
+    //  -----+-----+-----
+    // |  G  |  H  |  I  |
+    // |     |     |     |
+    //  ----- ----- -----
+    // This calculation has to account for cases where we go from A to F, which would mean that we might
+    //  need a split for A,B,E and F.                                                   - Austin Haskell
+
     let codes: Vec<GCode> = Vec::new();
+
+
+
     codes
 }
 
-
-
-
+// Nothing in the std has anything to do this for unsinged types ;( - Austin Haskell
+fn diff(values: (u16, u16)) -> u16 {
+    if values.0 > values.1 {
+        return values.0 - values.1;
+    }
+    values.1 - values.0
+}
 
 
 // ----- Unit tests ----- 
