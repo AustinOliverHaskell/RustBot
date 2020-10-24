@@ -1,6 +1,7 @@
 // Todo: Remove this eventually and fix these warnings, for now it's just annoying since this is just getting started. - Austin Haskell
 #![allow(unused_imports)]
 #![allow(unused_variables)]
+#![allow(dead_code)]
 
 use std::fs;
 use libc::*;
@@ -9,11 +10,13 @@ pub mod parser { pub mod gcode; }
 pub mod translator { pub mod gcode_translator; }
 pub mod robot;
 pub mod motor;
+pub mod tmc2208;
 
 use parser::gcode::*;
 use translator::gcode_translator::*;
 use robot::*;
 use motor::*;
+use tmc2208::*;
 
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -33,55 +36,10 @@ use std::os::raw::c_char;
 //        | 27  | 13  | 
 //        | 10  | 19  |
 
-fn CalculateCRC(bytes: &Vec<u8>) -> u8 {
-    let mut crc: u8 = 0;
-    for byte in bytes {
-        let mut val = byte.clone();
-
-        for _ in 0..7 {
-            if (crc >> 7) ^ (val & 0x01) != 0 {
-                crc = crc << 1 ^ 0x07;
-            } else {
-                crc = crc << 1;
-            }
-        
-            val = val >> 1;
-        }
-    }
-
-    crc
-}
-
-fn make_packet(register: u8, payload: u32) -> Vec<u8> {
-    let header: u8 = 175; // 10101111
-    let slave_address: u8 = 0;
-    let register_address = (register << 1) & 0x1;
-
-    let mut packet: Vec<u8> = Vec::new();
-    packet.push(header);
-    packet.push(slave_address);
-    packet.push(register_address);
-
-    let a: u8 = (payload >> 24) as u8;
-    let b: u8 = (payload >> 16) as u8;
-    let c: u8 = (payload >> 8 ) as u8;
-    let d: u8 = payload as u8;
-
-    packet.push(a);
-    packet.push(b);
-    packet.push(c);
-    packet.push(d);
-
-    let crc = CalculateCRC(&packet);
-
-    packet.push(crc);
-
-    packet
-}
-
 fn main() {
     let print_area: (f32, f32) = (16.0, 16.0);
 
+    /*
     unsafe {
         let mut fd = libc::open(
             CString::new("/dev/ttyAMA3").unwrap().as_ptr(), 
@@ -89,7 +47,7 @@ fn main() {
 
         
 
-    }
+    }*/
 
     /*
     let robot = Robot {
