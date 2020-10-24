@@ -4,13 +4,25 @@ pub struct Command {
     pub pen_lifted: bool
 }
 
-pub struct Robot { 
+pub struct Robot {
+    /*pub motors: Vec<Motor>,*/
     pub acceleration: f32,
     pub current_quadrant: (u16, u16),
     pub print_area: (f32, f32)
 }
 
+
+
 impl Robot {
+    pub fn start_robot() -> Self {
+        return Robot {
+            /*motors: Vec::new(),*/
+            acceleration: 0.0,
+            current_quadrant: (0, 0),
+            print_area: (0.0, 0.0)
+        }
+    }
+
     pub fn execute_command(self: &Self, command: &Command) {
     }
 
