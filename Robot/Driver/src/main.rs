@@ -5,12 +5,23 @@
 
 use std::fs;
 use libc::*;
+use num;
+#[macro_use]
+extern crate num_derive;
 
 pub mod parser { pub mod gcode; }
 pub mod translator { pub mod gcode_translator; }
+pub mod tmc2208 { 
+    pub mod tmc2208; 
+    pub mod tmc_packet;
+    pub mod stealthchop_configuration;
+    pub mod register_defs;
+    pub mod otp_configuration;
+    pub mod driver_status;
+    pub mod chopper_configuration;
+}
 pub mod robot;
 pub mod motor;
-pub mod tmc2208;
 
 use parser::gcode::*;
 use translator::gcode_translator::*;
