@@ -16,3 +16,5 @@ image.svg
 Robot/Driver/target/
 
 *.svg
+
+Slicer/target/
