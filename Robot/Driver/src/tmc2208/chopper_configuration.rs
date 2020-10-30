@@ -30,6 +30,23 @@ impl ChopperConfiguration {
             low_side_short_protection:  ((raw >> 31) & 0x01) != 0
         }
     }
+
+    pub fn to_raw(self: Self) -> u32 {
+        let mut raw: u32 = 0;
+
+        raw = raw | self.toff_time as u32;
+        raw = raw | ((self.hysteresis_start as u32) << 4);
+        raw = raw | ((((self.hysteresis_val) as i32) + 3) << 8) as u32;
+        raw = raw | ((self.time_select as u32) << 15);
+        raw = raw | ((self.high_sensitivity as u32) << 17);
+        raw = raw | ((self.microstep_resolution as u32) << 24);
+        raw = raw | ((self.interp_to_256_microsteps as u32) << 28);
+        raw = raw | ((self.double_edge_step_pulses as u32) << 29);
+        raw = raw | ((self.short_to_ground_protection as u32) << 30);
+        raw = raw | ((self.low_side_short_protection as u32) << 31);
+
+        raw
+    }
 }
 
 #[derive(FromPrimitive, PartialEq, Debug)]
@@ -62,7 +79,7 @@ pub enum MicrostepResolution {
 }
 
 #[test]
-fn from_raw_parses() {
+fn from_raw_deserializes() {
     let test_data: u32 = 0b01011000010010011100110101011101;
     let actual = ChopperConfiguration::from_raw(test_data);
 
@@ -78,6 +95,29 @@ fn from_raw_parses() {
         short_to_ground_protection: true,
         low_side_short_protection: false
     };
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn to_raw_serializes() {
+    let expected: u32 = 0b01011000000000011000110101011101;
+
+    let test_data = ChopperConfiguration {
+        toff_time: 13,
+        hysteresis_start: 5,
+        hysteresis_val: 10,
+        time_select: ComparatorBlankTime::Time40,
+        high_sensitivity: false,
+        microstep_resolution: MicrostepResolution::Fullstep,
+        interp_to_256_microsteps: true,
+        double_edge_step_pulses: false,
+        short_to_ground_protection: true,
+        low_side_short_protection: false
+    };
+    let actual = test_data.to_raw();
+    let tmp = ChopperConfiguration::from_raw(actual);
+    println!("{:?}", tmp);
 
     assert_eq!(expected, actual);
 }
