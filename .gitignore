@@ -18,3 +18,5 @@ Robot/Driver/target/
 *.svg
 
 Slicer/target/
+
+Robot/Slicer/target/
