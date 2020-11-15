@@ -1,4 +1,4 @@
-// Todo: fix all names and unused - Austin Haskell
+// TODO: fix all names and unused - Austin Haskell
 #![allow(non_snake_case)] 
 #![allow(unused_imports)]
 
@@ -7,10 +7,10 @@ use svg::node::element::Path;
 use svg::node::element::path::Data;
 
 pub mod Shape;
-pub mod BasicShapes { pub mod Square; }
+pub mod BasicShapes { pub mod Rectangle; }
 
 use Shape::ShapeContract;
-use BasicShapes::Square::*;
+use BasicShapes::Rectangle::*;
 
 fn main() {
 
@@ -20,12 +20,12 @@ fn main() {
     let mut document = Document::new()
         .set("viewBox", (0, 0, pageWidth, pageHeight));
 
-    let mut vec: Vec<BasicShapes::Square::Square> = Vec::new();
-    for _ in 0..150 {
+    let mut vec: Vec<BasicShapes::Rectangle::Rectangle> = Vec::new();
+    for _ in 0..10 {
         let size = rand::random::<u32>() % 20 + 10;
         vec.push( 
-            Square::make_with_infill(
-                size, 
+            Rectangle::make_with_infill(
+                size + 10, 
                 size, 
                 rand::random::<u32>() as i32 % pageWidth + 10, 
                 rand::random::<u32>() as i32 % pageHeight + 10,

@@ -4,7 +4,7 @@ use svg::Document;
 use svg::node::element::Path;
 use svg::node::element::path::Data;
 
-pub struct Square {
+pub struct Rectangle {
     pub width: u32,
     pub height: u32,
     pub x: i32,
@@ -12,9 +12,9 @@ pub struct Square {
     pub traits: Shape
 }
 
-impl ShapeContract for Square {
-    fn make(width: u32, height: u32, x: i32, y: i32) -> Square {
-        let shape = Square {
+impl ShapeContract for Rectangle {
+    fn make(width: u32, height: u32, x: i32, y: i32) -> Rectangle {
+        let shape = Rectangle {
             height: height,
             width: width,
             x: x,
@@ -35,8 +35,8 @@ impl ShapeContract for Square {
         shape
     }
 
-    fn make_with_infill(width: u32, height: u32, x: i32, y: i32, density: i32) -> Square {
-        let mut square = Square {
+    fn make_with_infill(width: u32, height: u32, x: i32, y: i32, density: i32) -> Rectangle {
+        let mut square = Rectangle {
             height: height,
             width: width,
             x: x,
