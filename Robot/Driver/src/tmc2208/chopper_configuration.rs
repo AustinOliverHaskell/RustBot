@@ -17,7 +17,7 @@ pub struct ChopperConfiguration {
 
 impl ChopperConfiguration {
     pub fn from_raw(raw: u32) -> Self {
-        return ChopperConfiguration {
+        ChopperConfiguration {
             toff_time:                  (raw & 0xF) as u8,
             hysteresis_start:           ((raw >> 4) & 0xF) as u8,
             hysteresis_val:             (((raw >> 8) & 0xF) as i8) - 3,
@@ -116,8 +116,6 @@ fn to_raw_serializes() {
         low_side_short_protection: false
     };
     let actual = test_data.to_raw();
-    let tmp = ChopperConfiguration::from_raw(actual);
-    println!("{:?}", tmp);
 
     assert_eq!(expected, actual);
 }

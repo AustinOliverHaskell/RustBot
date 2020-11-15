@@ -1,5 +1,6 @@
-// Todo: Remove this eventually and fix these warnings, for now it's just annoying since this is just getting started. - Austin Haskell
+// TODO: Remove this eventually and fix these warnings, for now it's just annoying since this is just getting started. - Austin Haskell
 #![allow(unused_imports)]
+#![allow(unused_macros)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 

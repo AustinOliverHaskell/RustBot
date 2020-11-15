@@ -52,7 +52,7 @@ impl GCode {
                     }
                     code.command = parsed_command.to_string();
                 },
-                'M' => return Err("Command has no implementation"), // Todo: Figure out which M commands we should support - Austin Haskell
+                'M' => return Err("Command has no implementation"), // TODO: Figure out which M commands we should support - Austin Haskell
                 _ => continue
             }
         }

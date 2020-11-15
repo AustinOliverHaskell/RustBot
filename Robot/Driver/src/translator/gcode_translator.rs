@@ -5,7 +5,17 @@
 use crate::robot::Command;
 use crate::parser::gcode::GCode;
 
-// Todo: Optomize this and maybe the calling code. Could do some loop unrolling to make sure there's not a cache miss - Austin Haskell
+struct Point {
+    x: f32,
+    y: f32
+}
+
+struct Line {
+    start: Point,
+    end: Point
+}
+
+// TODO: Optomize this and maybe the calling code. Could do some loop unrolling to make sure there's not a cache miss - Austin Haskell
 // I'm worried this is going to be really slow with big files, maybe this translation should happen on a laptop rather than the raspberry pi zero
 pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (f32, f32)) -> Vec<Command> {
 
@@ -43,7 +53,7 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
     for code in gcode_list {
         
         // First iteration
-        // Todo: This is going to skip adding the first command to the list
+        // TODO: This is going to skip adding the first command to the list
         if prev_code.is_none() {
             prev_code = Some(code);
             continue; 
@@ -72,6 +82,8 @@ pub fn translate_to_internal_command_list(gcode_list: &Vec<GCode>, print_area: (
                 }
             );
         } else {
+            // TODO: Commands that end on a boundary are going to have to be duplicated if the next command
+            //  crosses a boundary                                                         - Austin Haskell 
             commands_that_dont_cross.push (
                 OrderedGCode {
                     command: code.clone(),
@@ -148,6 +160,26 @@ fn split_gcode_at_quadrant_line(commands: (&GCode, &GCode), print_area: (f32, f3
     codes
 }
 
+// Note: This assumes that the square is aligned with the X and Y axis - Austin Haskell
+fn does_line_intersect_square(line: Line, square: ((f32, f32), (f32, f32))) -> bool {
+    false
+}
+
+fn does_line_intersect_line(line1: Line, line2: Line) -> bool {
+    let A = (line1.end.y - line1.start.y, line2.end.y - line2.start.y);
+    let B = (line1.start.x - line1.end.x, line2.start.x - line2.end.x);
+    let C = (A.0 * line1.start.x + B.0 * line1.end.y, A.1 * line2.start.x + B.1 * line2.end.y);
+
+    let det = A.0 * B.1 - A.1 * B.0;
+    if det == 0.0 {
+        return false; // parallel
+    }
+
+    
+
+    false
+}
+
 // Nothing in the std has anything to do this for unsinged types ;( - Austin Haskell
 fn diff(values: (u16, u16)) -> u16 {
     if values.0 > values.1 {
@@ -155,7 +187,6 @@ fn diff(values: (u16, u16)) -> u16 {
     }
     values.1 - values.0
 }
-
 
 // ----- Unit tests ----- 
 #[test]
@@ -212,6 +243,60 @@ fn boundary_cross_does_not_occour() {
 
 #[test]
 fn split_gcode_across_multiple_boundaries() {
+
+    let point_start = GCode {
+        command: String::from("G1"),
+        x: 0.0,
+        y: 0.0,
+        z: 0.0
+    };
+
+    let point_end = GCode {
+        command: String::from("G1"),
+        x: 48.0,
+        y: -20.0,
+        z: 0.0
+    };
+
+    let print_area: (f32, f32) = (16.0, 16.0);
+
+
+
+    assert_eq!(true, false)
+}
+
+// Same as above test, but this one checks to make sure we dont create unnessasary commands when the line crosses
+//  a corner of two quadrants. In the example below we'd have a line from A to D, we need to make sure we dont
+//  create unnessasary codes in B and C for the crossed corner.                                  - Austin Haskell
+//  ----- ----- 
+// |  A  |  B  |
+// |     |     |
+//  -----+-----
+// |  C  |  D  |
+// |     |     |
+//  -----+-----+
+
+#[test]
+fn split_gcode_across_multiple_boundaries_across_corners() {
+
+    let point_start = GCode {
+        command: String::from("G1"),
+        x: 0.0,
+        y: 0.0,
+        z: 0.0
+    };
+
+    let point_end = GCode {
+        command: String::from("G1"),
+        x: 32.0,
+        y: -32.0,
+        z: 0.0
+    };
+
+    let print_area: (f32, f32) = (16.0, 16.0);
+
+
+
     assert_eq!(true, false)
 }
 
