@@ -1,0 +1,142 @@
+extern crate geo;
+extern crate line_intersection;
+
+use line_intersection::{LineInterval, LineRelation};
+use geo::{Coordinate, Line, Point};
+
+// TODO: Figure out a better spot for this - Austin Haskell
+pub struct Rectangle {
+    pub x: f32, 
+    pub y: f32,
+    pub height: f32, 
+    pub width: f32
+}
+
+// Explanation found here: https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+//  Note that the code below does not
+pub fn find_intersection_points_for_rectangle(line: ((f32, f32),(f32, f32)), rectangle: Rectangle) -> Vec<(f32, f32)> {
+
+    let mut expanded_rectangle: Vec<((f32, f32), (f32, f32))> = Vec::new();
+    expanded_rectangle.push(((rectangle.x, rectangle.y),                    (rectangle.x, rectangle.y + rectangle.height)));
+    expanded_rectangle.push(((rectangle.x, rectangle.y),                    (rectangle.x + rectangle.width, rectangle.y))); 
+    expanded_rectangle.push(((rectangle.x + rectangle.width, rectangle.y),  (rectangle.x + rectangle.width, rectangle.y + rectangle.height)));
+    expanded_rectangle.push(((rectangle.x, rectangle.y + rectangle.height), (rectangle.x + rectangle.width, rectangle.y + rectangle.height)));
+
+    let mut intersection_points: Vec<(f32, f32)> = Vec::new();
+
+    for p in expanded_rectangle {
+        let intersection = find_intersection_point_of_lines(line, (p.0, p.1));
+
+        if intersection.is_none() {
+            continue;
+        }
+
+        intersection_points.push(intersection.unwrap());
+    }
+
+    intersection_points
+}
+
+pub fn find_intersection_point_of_lines(line1: ((f32, f32), (f32, f32)), line2: ((f32, f32), (f32, f32))) -> Option<(f32, f32)> {
+    let line_segment_1 = LineInterval::line_segment( Line {
+        start: (line1.0.0, line1.0.1).into(),
+        end: (line1.1.0, line1.1.1).into()
+    });
+
+    let line_segment_2 = LineInterval::line_segment( Line {
+        start: (line2.0.0, line2.0.1).into(),
+        end: (line2.1.0, line2.1.1).into()
+    });
+
+    let line_relationships = line_segment_1.relate(&line_segment_2);
+
+    if line_relationships == LineRelation::Collinear || 
+       line_relationships == LineRelation::DivergentDisjoint || 
+       line_relationships == LineRelation::Parallel {
+        return None;
+    }
+
+    let intersection_point = line_relationships.unique_intersection().unwrap();
+
+    Some((intersection_point.x(), intersection_point.y()))
+}
+
+pub fn is_quadrant_adjacent(quadrant_base: (i32, i32), quadrant_to_check: (i32, i32)) -> bool {
+    let diff = (quadrant_base.0 - quadrant_to_check.0, 
+                quadrant_base.1 - quadrant_to_check.1);
+
+    if diff.0 > 1 || diff.0 < -1{
+        return false;
+    }
+
+    if diff.1 > 1 || diff.1 < -1 {
+        return false;
+    }
+
+    true
+}
+
+pub fn build_two_parameter_command(code: &str, a: f32, b: f32) -> String{
+    code.to_string() + &String::from(" ") + &a.to_string() + &String::from(" ") + &b.to_string()
+}
+
+pub fn point_to_move_cmd(point: (f32, f32)) -> String {
+    build_two_parameter_command("G", point.0, point.1)
+}
+
+pub fn point_to_move_quadrant_cmd(quadrant: (i32, i32)) -> String {
+    build_two_parameter_command("Q", quadrant.0 as f32, quadrant.1 as f32)
+}
+
+#[test]
+pub fn does_line_cross_rectangle_crosses() {
+    // TODO: Implementation
+    assert!(false);
+}
+
+#[test]
+pub fn does_line_cross_rectangle_doesnt_cross() {
+    // TODO: Implementation
+    assert!(false);
+}
+
+#[test]
+pub fn find_intersection_point_of_lines_does_not_intersect() {
+    // TODO: Implementation
+    assert!(false);
+}
+
+#[test]
+pub fn find_intersection_point_of_lines_does_intersect() {
+    // TODO: Implementation
+    assert!(false);
+}
+
+#[test]
+fn IsQuadrantAdjacent_IsAdjacent() {
+    let q1: (i32, i32) = (0,  0);
+    let q2: (i32, i32) = (-1, 0);
+    let q3: (i32, i32) = (0, -1);
+    let q4: (i32, i32) = (0,  1);
+    let q5: (i32, i32) = (1,  0);
+
+    assert!(is_quadrant_adjacent(q1, q2));
+    assert!(is_quadrant_adjacent(q1, q3));
+    assert!(is_quadrant_adjacent(q1, q4));
+    assert!(is_quadrant_adjacent(q1, q5));
+}
+
+
+#[test]
+fn IsQuadrantAdjacent_IsNotAdjacent() {
+    let q1: (i32, i32) = (0,  0);
+    let q2: (i32, i32) = (-2, 0);
+    let q3: (i32, i32) = (0, -5);
+    let q4: (i32, i32) = (0,  10);
+    let q5: (i32, i32) = (10,  0);
+
+    assert!(is_quadrant_adjacent(q1, q2));
+    assert!(is_quadrant_adjacent(q1, q3));
+    assert!(is_quadrant_adjacent(q1, q4));
+    assert!(is_quadrant_adjacent(q1, q5));
+}
