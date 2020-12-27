@@ -25,11 +25,15 @@ impl Word {
 impl GCode {
     pub fn Write(self: &Self) -> String {
         let mut line: String = self.command.ToString();
+        line += " ";
         line += &self.x.to_string();
         line += " ";
         line += &self.y.to_string();
-        line += " ";
-        line += &self.z.to_string();
+
+        if self.command.letter != 'Q' { 
+            line += " ";
+            line += &self.z.to_string();
+        }
 
         line
     }

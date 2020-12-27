@@ -4,8 +4,13 @@ extern crate line_intersection;
 use line_intersection::{LineInterval, LineRelation};
 use geo::{Coordinate, Line, Point};
 
+use crate::GCode;
+
 // TODO: Figure out a better spot for this - Austin Haskell
+#[derive(Debug, Copy, Clone)]
 pub struct Rectangle {
+    pub quad_x: i32,
+    pub quad_y: i32,
     pub x: f32, 
     pub y: f32,
     pub height: f32, 
@@ -76,17 +81,31 @@ pub fn is_quadrant_adjacent(quadrant_base: (i32, i32), quadrant_to_check: (i32, 
     true
 }
 
-pub fn build_two_parameter_command(code: &str, a: f32, b: f32) -> String{
-    code.to_string() + &String::from(" ") + &a.to_string() + &String::from(" ") + &b.to_string()
+pub fn build_two_parameter_command(word: GCode::Word, x: f32, y: f32) -> GCode::GCode {
+
+    GCode::GCode {
+        command: word,
+        x: x,
+        y: y,
+        z: 0.0
+    }
 }
 
-pub fn point_to_move_cmd(point: (f32, f32)) -> String {
-    build_two_parameter_command("G", point.0, point.1)
+pub fn point_to_move_cmd(point: (f32, f32)) -> GCode::GCode {
+    build_two_parameter_command(GCode::Word {
+        letter: 'G',
+        value: 1
+    }, point.0, point.1)
 }
 
-pub fn point_to_move_quadrant_cmd(quadrant: (i32, i32)) -> String {
-    build_two_parameter_command("Q", quadrant.0 as f32, quadrant.1 as f32)
+pub fn point_to_move_quadrant_cmd(quadrant: (i32, i32)) -> GCode::GCode {
+    build_two_parameter_command(GCode::Word {
+        letter: 'Q',
+        value: 1
+    }, quadrant.0 as f32, quadrant.1 as f32)
 }
+
+
 
 #[test]
 pub fn does_line_cross_rectangle_crosses() {

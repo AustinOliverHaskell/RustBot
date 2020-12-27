@@ -1,3 +1,5 @@
+use crate::GCode;
+
 pub fn float_mod(a: f32, b: f32) -> f32 {
 
     // TODO: Refactor this, it could be made cleaner / more efficiant - Austin Haskell
@@ -44,7 +46,7 @@ pub fn float_mod(a: f32, b: f32) -> f32 {
     result
 }
 
-pub fn compare_gcode_line_vectors(list_a: Vec<String>, list_b: Vec<String>) -> bool {
+pub fn compare_gcode_line_vectors(list_a: Vec<GCode::GCode>, list_b: Vec<GCode::GCode>) -> bool {
     if list_a.len() != list_b.len() {
         return false;
     }
@@ -87,34 +89,94 @@ fn FloatMod_Negatives_Calculates() {
 
 #[test]
 fn compare_gcode_line_vectors_Are_not_equal() {
-    let list_a: Vec<String> = 
+    let list_a: Vec<GCode::GCode> = 
         vec![
-            String::from("a"), 
-            String::from("b"),
-            String::from("Some other string")];
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 14.5,
+                y : 26.78,
+                z : 0.0
+            }, 
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 67.5,
+                y : 29.78,
+                z : 10.0
+            }];
 
-    let list_b: Vec<String> = 
+    let list_b: Vec<GCode::GCode> = 
         vec![
-            String::from("a"), 
-            String::from("c"),
-            String::from("Some other string")];
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 7.5,
+                y : 26.78,
+                z : 0.0
+            }, 
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'G',
+                    value: 1
+                },
+                x : 67.5,
+                y : 29.78,
+                z : 10.0
+            }];
 
     assert_eq!(false, compare_gcode_line_vectors(list_a, list_b));
 }
 
 #[test]
 fn compare_gcode_line_vectors_Are_equal() {
-    let list_a: Vec<String> = 
+    let list_a: Vec<GCode::GCode> = 
         vec![
-            String::from("a"), 
-            String::from("b"),
-            String::from("Some other string")];
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 14.5,
+                y : 26.78,
+                z : 0.0
+            }, 
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 67.5,
+                y : 29.78,
+                z : 10.0
+            }];
 
-    let list_b: Vec<String> = 
+    let list_b: Vec<GCode::GCode> = 
         vec![
-            String::from("a"), 
-            String::from("b"),
-            String::from("Some other string")];
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 14.5,
+                y : 26.78,
+                z : 0.0
+            }, 
+            GCode::GCode {
+                command : GCode::Word {
+                    letter: 'Q',
+                    value: 1
+                },
+                x : 67.5,
+                y : 29.78,
+                z : 10.0
+            }];
 
     assert_eq!(true, compare_gcode_line_vectors(list_a, list_b));
 }

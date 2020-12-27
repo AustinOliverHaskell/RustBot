@@ -7,8 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-svg = "0.8.0"
 string-builder = "0.2.0"
 line_intersection = "0.4.0"
 geo = "0.4.0"
 num-traits = "0.1"
+indicatif = "0.15.0"
+clap = "2.33.3"
+quick-xml = "0.20.0"
