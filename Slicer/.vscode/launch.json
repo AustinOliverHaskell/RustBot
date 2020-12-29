@@ -19,7 +19,14 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": [
+                "-fimage.svg",
+                "-oout",
+                "-afalse",
+                "-x100",
+                "-h50",
+                "-w50"
+            ],
             "cwd": "${workspaceFolder}"
         },
         {
