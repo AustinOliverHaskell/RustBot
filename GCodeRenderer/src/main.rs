@@ -2,14 +2,15 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use clap::{Arg, App};
 use std::fs;
 use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
+use std::borrow::Cow;
 use png::*;
 use indicatif::ProgressBar;
 use indicatif::ProgressStyle;
+use threadpool::ThreadPool;
 
 mod file_loader;
 use file_loader::*;
@@ -17,37 +18,19 @@ use file_loader::*;
 mod rasterizer;
 use rasterizer::*;
 
+mod arguments;
+use arguments::*;
+
 fn main() {
-    let arguments = App::new("GCode Rendering")
-        .version("0.1.0")
-        .author("Austin Haskell")
-        .about("Debugging tool to view what a given gcode snippet will look like")
-        .arg(Arg::with_name("file")
-            .short("f")
-            .long("file")
-            .takes_value(true)
-            .help("File to generate images from"))
-        .arg(Arg::with_name("output")
-            .short("o")
-            .long("output")
-            .takes_value(true)
-            .help("Base output filename, this filename will have the quadrant rendered appended"))
-        .arg(Arg::with_name("pixels_per_mm")
-            .short("p")
-            .long("pixel")
-            .takes_value(true)
-            .help("Number of pixels to use per mm, default is 1"))
-        .get_matches();
+    
+    let program_args = ProgramArgs::new();
 
-    let input_file = arguments.value_of("file").unwrap_or("input.gcode");
-    let output_base = arguments.value_of("output").unwrap_or("quadrant");
-    let pixel_scalar: i32 = arguments.value_of("pixels_per_mm").unwrap_or("1").parse().unwrap_or(1);
-
-    println!("Running gcode rendering on input file: {:?} and base output file name of {:?}", input_file, output_base);
+    println!("Running gcode rendering on input file: {:?} and base output file name of {:?}", program_args.input_file, program_args.output_file);
+    println!("Using a threadpool with {:?} workers. ", program_args.thread_count);
 
     println!("Loading gcode file... ");
     let loader_result: Result<FileLoader, String>;
-    let raw_data = fs::read_to_string(input_file);
+    let raw_data = fs::read_to_string(program_args.input_file);
     match raw_data {
         Ok(data) => loader_result = FileLoader::load(data),
         _ => { println!("Error: Input file must point to a valid file. "); return }
@@ -58,38 +41,61 @@ fn main() {
         Ok(fl) => loader = fl,
         Err(e) => { println!("Error: Input file was invalid ->{:?}", e); return;}
     }
-    println!("Complete!");
 
     println!("Rendering with a width of {:?}mm and a height of {:?}mm. Using {:?} pixels per mm. ", 
         loader.settings.printbed_width,
         loader.settings.printbed_height,
-        pixel_scalar);
+        program_args.pixel_size);
 
     let progress_bar = ProgressBar::new(loader.commands.len() as u64);
     progress_bar.set_style(ProgressStyle::default_bar().progress_chars("#>-"));
 
     //TODO: Make this multithreaded. - Austin Haskell
+    let printbed_width  = loader.settings.printbed_width as i32;
+    let printbed_height = loader.settings.printbed_height as i32;
+    let pixel_scaling = program_args.pixel_size as i32;
+
+    let workers = threadpool::ThreadPool::new(program_args.thread_count as usize);
+
+    let command_len = loader.commands.len();
     for command in loader.commands {
-        let img = Rasterizer::create(
-            &command, 
-            loader.settings.printbed_width as i32, 
-            loader.settings.printbed_height as i32, 
-            pixel_scalar);
+        let output_base = program_args.output_file.clone();
 
-        let filename = String::from(output_base) + &command.quadrant.x.to_string() + &String::from("_") + &command.quadrant.y.to_string() + &String::from(".png");
-        let path = Path::new(&filename);
-        let file = File::create(path).unwrap();
-        let ref mut w = BufWriter::new(file);
+        workers.execute( move || {
+            let img = Rasterizer::create(
+                &command, 
+                printbed_width, 
+                printbed_height, 
+                pixel_scaling);
+    
+            let mut filename_builder = string_builder::Builder::default();
+            filename_builder.append(output_base);
+            filename_builder.append(command.quadrant.x.to_string());
+            filename_builder.append("_");
+            filename_builder.append(command.quadrant.y.to_string());
+            filename_builder.append(".png");
 
-        let mut encoder = png::Encoder::new(w, img.width as u32, img.height as u32); // Width is 2 pixels and height is 1.
-        encoder.set_color(png::ColorType::RGB);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        
-        writer.write_image_data(&img.data).unwrap(); // Save
-
-        progress_bar.inc(1);
+            let filename = filename_builder.string().unwrap();
+            let file = File::create(Path::new(&filename)).unwrap();
+            let ref mut buffered_writer = BufWriter::new(file);
+    
+            let mut encoder = png::Encoder::new(buffered_writer, img.width as u32, img.height as u32);
+            encoder.set_color(png::ColorType::RGB);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().unwrap();
+            
+            writer.write_image_data(&img.data).unwrap(); // Save
+        });
     }
+
+    // Note: I dont know if this could break. As in, I dont know if theres a scenario 
+    //  where the active workers is 0 but there is still queued jobs. - Austin Haskell
+    while workers.active_count() != 0 {
+        progress_bar.set_position((command_len - workers.queued_count()) as u64);
+    }
+
+    workers.join();
+
     progress_bar.finish();
 
     println!("Completed rendering. ");

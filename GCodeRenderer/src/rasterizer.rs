@@ -41,17 +41,29 @@ impl Rasterizer {
             Rasterizer::draw_point(&mut image_data, image_width, Color { r: 0, g: 0, b: 0}, scalar, point);
         }
         else {
-            let mut last_point = PixelPoint::from_gcode_point(gcode.points[0], image_height, scalar);
+            let mut last_point: Option<PixelPoint> = Some(PixelPoint::from_gcode_point(gcode.points[0], image_height, scalar));
             for point in &gcode.points {
 
-                let current_point = PixelPoint::from_gcode_point(*point, image_height, scalar);
-                if last_point == current_point {
+                // Pen Lift
+                if point.z < 0.0 {
+                    last_point = None;
                     continue;
                 }
 
-                Rasterizer::draw_line(&mut image_data[0..image_size], image_width, scalar, last_point, current_point);
+                let current_point = PixelPoint::from_gcode_point(*point, image_height, scalar);
+                if last_point.is_some() {
+                    if last_point.unwrap() == current_point {
+                        continue;
+                    }
 
-                last_point = current_point;
+                    let mut pixel_scaling = (scalar as f32).sqrt();
+                    if pixel_scaling < 1.0 {
+                        pixel_scaling = 2.0;
+                    }
+                    Rasterizer::draw_line(&mut image_data[0..image_size], image_width, pixel_scaling.floor() as i32, last_point.unwrap(), current_point);
+                }
+
+                last_point = Some(current_point);
             }
         }
 
@@ -65,15 +77,15 @@ impl Rasterizer {
     fn draw_line(data: &mut [u8], image_width: usize, scale: i32, start_point: PixelPoint, end_point: PixelPoint) {
         if (end_point.y - start_point.y).abs() < (end_point.x - start_point.x).abs() {
             if start_point.x > end_point.x {
-                Rasterizer::draw_line_low(data, image_width, 2, end_point, start_point);
+                Rasterizer::draw_line_low(data, image_width, scale, end_point, start_point);
             } else {
-                Rasterizer::draw_line_low(data, image_width, 2, start_point, end_point);
+                Rasterizer::draw_line_low(data, image_width, scale, start_point, end_point);
             }
         } else {
             if start_point.y > end_point.y {
-                Rasterizer::draw_line_high(data, image_width, 2, end_point, start_point);
+                Rasterizer::draw_line_high(data, image_width, scale, end_point, start_point);
             } else {
-                Rasterizer::draw_line_high(data, image_width, 2, start_point, end_point);
+                Rasterizer::draw_line_high(data, image_width, scale, start_point, end_point);
             }
         }
 
@@ -95,14 +107,9 @@ impl Rasterizer {
         let mut x = start_point.x;
 
         for y in start_point.y..=end_point.y {
-            for thickness in -scale..=scale {
-                if y + thickness < 0 || x >= image_width as i32 ||
-                   Rasterizer::calc_pixel_position(image_width, x, y + thickness) >= data.len() as i32 { 
-                    continue; 
-                }
 
-                Rasterizer::set_pixel_color(data, image_width, Color {r: 0, g: 0, b: 0}, x, y + thickness);
-            }
+            Rasterizer::draw_point(data, image_width, Color {r: 0, g: 0, b: 0}, scale, PixelPoint { x: x, y: y });
+
             if distance > 0 {
                 x = x + x_itr;
                 distance = distance + (2 * (delta_x - delta_y));
@@ -125,14 +132,8 @@ impl Rasterizer {
         let mut distance = (2 * delta_y) - delta_x;
         let mut y = start_point.y;
         for x in start_point.x..=end_point.x {
-            for thickness in -scale..=scale {
-                if y + thickness < 0 || x >= image_width as i32 || 
-                   Rasterizer::calc_pixel_position(image_width, x, y + thickness) >= data.len() as i32 { 
-                    continue; 
-                }
-
-                Rasterizer::set_pixel_color(data, image_width, Color {r: 0, g: 0, b: 0}, x, y + thickness);
-            }
+            
+            Rasterizer::draw_point(data, image_width, Color {r: 0, g: 0, b: 0}, scale, PixelPoint { x: x, y: y });
 
             if distance > 0 {
                 y = y + y_itr;
