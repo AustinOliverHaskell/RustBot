@@ -112,7 +112,7 @@ fn main() {
 
     if program_args.create_joined {
         println!("Creating master image from quadrants... ");
-        create_joined_image(master_image_data, printbed_width, printbed_height, program_args.pixel_size as i32);
+        create_joined_image(master_image_data, printbed_width, printbed_height, program_args.pixel_size as i32, program_args.outline_quadrants);
         println!("Done.");
     }
 
@@ -120,7 +120,9 @@ fn main() {
 
 }
 
-fn create_joined_image(rendered_quadrants: Vec<RenderedQuadrant>, quadrant_img_width: i32, quadrant_img_height: i32, scale: i32) {
+// TODO: Split this up a bit, serving two functions: Buffer creation and File saving. - Austin Haskell
+//  this should be it's own file - Austin Haskell
+fn create_joined_image(rendered_quadrants: Vec<RenderedQuadrant>, quadrant_img_width: i32, quadrant_img_height: i32, scale: i32, outline: bool) {
     
     let mut largest_quadrants: (i32, i32) = (0, 0);
     for quadrant in &rendered_quadrants {
@@ -159,6 +161,16 @@ fn create_joined_image(rendered_quadrants: Vec<RenderedQuadrant>, quadrant_img_w
         }
     }
 
+    if outline {
+        outline_quadrants(
+            &mut master_image, 
+            scale * quadrant_img_width, 
+            scale * quadrant_img_height, 
+            largest_quadrants.0,
+            largest_quadrants.1,
+            image_width);
+    }
+
     write_png("master_img.png", 
         image_width,
         image_height,
@@ -166,6 +178,43 @@ fn create_joined_image(rendered_quadrants: Vec<RenderedQuadrant>, quadrant_img_w
     ).unwrap();
 }
 
+// TODO: Make this not suck. I dont think all of these things absolutly need to be passed in. - Austin Haskell
+fn outline_quadrants(img_data: &mut Vec<u8>, quadrant_width: i32, quadrant_height: i32, largest_quad_x: i32, largest_quad_y: i32, image_width: usize) {
+
+    println!("Adding outline to master. ");
+    for y in 1..=largest_quad_y {
+        let row = y * quadrant_height * image_width as i32 * 3;
+        let mut x = row;
+        while x < row + image_width as i32 * 3 {
+
+            img_data[x as usize]     = 255;
+            img_data[x as usize + 1] = 0;
+            img_data[x as usize + 2] = 0;
+
+            x += 3;
+        }
+    }
+
+    for x in 1..=largest_quad_x {
+        let column = x * quadrant_width * 3;
+        let mut y = 0; 
+        while y < quadrant_height * image_width as i32 * 3 * (largest_quad_y + 1){
+
+            let index = y as usize + column as usize;
+            if index > img_data.len() {
+                break;
+            }
+
+            img_data[index] = 255;
+            img_data[index + 1] = 0;
+            img_data[index + 2] = 0;
+
+            y += image_width as i32 * 3;
+        }
+    }
+
+
+}
 
 // TODO: Figure out if the library is causing the slowdown. Seems to me like the write takes wayyyy too long for how much I'm writing.
 //  maybe use the native library calls and make the header myself? - Austin Haskell

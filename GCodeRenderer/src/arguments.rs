@@ -6,7 +6,8 @@ pub struct ProgramArgs {
     pub output_file: String,
     pub pixel_size: u32,
     pub thread_count: u8,
-    pub create_joined: bool 
+    pub create_joined: bool,
+    pub outline_quadrants: bool
 }
 
 impl ProgramArgs {
@@ -44,20 +45,27 @@ impl ProgramArgs {
                 .long("joined")
                 .takes_value(false)
                 .help("Additionally create joined image that is combined result of all quadrant images"))
+            .arg(Arg::with_name("outline_quadrants_in_master")
+                .short("l")
+                .long("outline")
+                .takes_value(false)
+                .help("Used in conjunction with the -j command, outlines each quadrant in red. Ignored if -j is not defined. "))
             .get_matches();
 
-        let input_file: &str    = run_arguments.value_of("file").unwrap_or("input.gcode");
-        let output_base: &str   = run_arguments.value_of("output").unwrap_or("quadrant");
-        let pixel_scalar: u32   = run_arguments.value_of("pixels_per_mm").unwrap_or("1").parse().unwrap_or(1);
-        let thread_count: u8    = run_arguments.value_of("thread_count").unwrap_or("4").parse().unwrap_or(4);
-        let create_joined: bool = run_arguments.is_present("create_joined_image");
+        let input_file: &str        = run_arguments.value_of("file").unwrap_or("input.gcode");
+        let output_base: &str       = run_arguments.value_of("output").unwrap_or("quadrant");
+        let pixel_scalar: u32       = run_arguments.value_of("pixels_per_mm").unwrap_or("1").parse().unwrap_or(1);
+        let thread_count: u8        = run_arguments.value_of("thread_count").unwrap_or("4").parse().unwrap_or(4);
+        let create_joined: bool     = run_arguments.is_present("create_joined_image");
+        let outline_quadrants: bool = run_arguments.is_present("outline_quadrants_in_master");
 
         ProgramArgs {
             input_file: String::from(input_file),
             output_file: String::from(output_base),
             pixel_size: pixel_scalar,
             thread_count: thread_count,
-            create_joined: create_joined
+            create_joined: create_joined,
+            outline_quadrants: outline_quadrants
         }
     }
 }
