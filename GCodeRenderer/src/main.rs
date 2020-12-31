@@ -23,10 +23,11 @@ use rasterizer::*;
 mod arguments;
 use arguments::*;
 
-struct RenderedQuadrant {
-    id: (i32, i32),
-    image_data: Vec<u8>
-}
+mod defs;
+use defs::RenderedQuadrant;
+
+mod master_img;
+use master_img::*;
 
 fn main() {
     
@@ -95,13 +96,26 @@ fn main() {
     }
 
     let mut master_image_data: Vec<RenderedQuadrant> = Vec::new();
+
+    let mut largest_quadrant: (i32, i32) = (0, 0);
     // Note: I dont know if this could break. As in, I dont know if theres a scenario 
     //  where the active workers is 0 but there is still queued jobs. - Austin Haskell
     while master_image_data.len() != command_len {
 
         let master_img_quadrant = rx.try_recv();
         if master_img_quadrant.is_ok() {
-            master_image_data.push(master_img_quadrant.unwrap());
+
+            let image_data = master_img_quadrant.unwrap();
+            let id = image_data.id.clone();
+
+            if id.0 > largest_quadrant.0 {
+                largest_quadrant.0 = id.0;
+            }
+            if id.1 > largest_quadrant.1 {
+                largest_quadrant.1 = id.1;
+            }
+
+            master_image_data.push(image_data);
         }
 
         progress_bar.set_position(master_image_data.len() as u64);
@@ -112,107 +126,35 @@ fn main() {
 
     if program_args.create_joined {
         println!("Creating master image from quadrants... ");
-        create_joined_image(master_image_data, printbed_width, printbed_height, program_args.pixel_size as i32, program_args.outline_quadrants);
+        //create_joined_image(master_image_data, printbed_width, printbed_height, program_args.pixel_size as i32, program_args.outline_quadrants);
+        let mut master_img = MasterImage::new(
+            (printbed_width as u32 * program_args.pixel_size) as usize, 
+            (printbed_height as u32 * program_args.pixel_size) as usize,
+            largest_quadrant);
+
+        for quad in master_image_data {
+            master_img.add(quad);
+        }
+
+        if program_args.outline_quadrants {
+            master_img.outline(255, 0, 0);
+        }
+
+        let mut filename_builder = string_builder::Builder::default();
+            filename_builder.append(program_args.output_file);
+            filename_builder.append("_");
+            filename_builder.append("master.png");
+
+        write_png(&filename_builder.string().unwrap(), 
+            master_img.image_width,
+            master_img.image_height,
+            master_img.data
+        ).unwrap();
+
         println!("Done.");
     }
 
     println!("Completed rendering. ");
-
-}
-
-// TODO: Split this up a bit, serving two functions: Buffer creation and File saving. - Austin Haskell
-//  this should be it's own file - Austin Haskell
-fn create_joined_image(rendered_quadrants: Vec<RenderedQuadrant>, quadrant_img_width: i32, quadrant_img_height: i32, scale: i32, outline: bool) {
-    
-    let mut largest_quadrants: (i32, i32) = (0, 0);
-    for quadrant in &rendered_quadrants {
-        if quadrant.id.0 > largest_quadrants.0 {
-            largest_quadrants.0 = quadrant.id.0;
-        }
-        if quadrant.id.1 > largest_quadrants.1 {
-            largest_quadrants.1 = quadrant.id.1;
-        }
-    }
-
-    let image_width: usize  = ((largest_quadrants.0 + 1) * quadrant_img_width  * scale) as usize;
-    let image_height: usize = ((largest_quadrants.1 + 1) * quadrant_img_height * scale) as usize;
-    let mut master_image: Vec<u8> = vec![100; image_height * image_width * 3];
-
-    // TODO: Clean this up, it's pretty unreadable. 
-    // The problem I was trying to solve was mapping each of the image data chunks to the master image's 
-    //  data. They're both single dimentional array's representing two dimentional data so there's a lot 
-    //  of offsets and shifting going on. Also the quadrant 0,0 goes in the bottom left and not the top 
-    //  left, so there's also a flip of the quadrants y value. 
-    for quadrant in rendered_quadrants {
-        let quadrant_width = quadrant_img_width * scale * 3;
-        let quadrant_height = quadrant_img_width * scale;
-
-        let flipped_y = (quadrant.id.1 - largest_quadrants.1).abs();
-        let mut line_pre = flipped_y as usize * image_width * 3 * quadrant_height as usize 
-            + quadrant.id.0 as usize * quadrant_width as usize; 
-
-        for y in 0..quadrant_height {
-            for x in 0..quadrant_width {
-                let pixel_coord: usize = (y * quadrant_width + x) as usize; 
-
-                master_image[line_pre + x as usize] = quadrant.image_data[pixel_coord];
-            }
-            line_pre += image_width * 3;
-        }
-    }
-
-    if outline {
-        outline_quadrants(
-            &mut master_image, 
-            scale * quadrant_img_width, 
-            scale * quadrant_img_height, 
-            largest_quadrants.0,
-            largest_quadrants.1,
-            image_width);
-    }
-
-    write_png("master_img.png", 
-        image_width,
-        image_height,
-        master_image
-    ).unwrap();
-}
-
-// TODO: Make this not suck. I dont think all of these things absolutly need to be passed in. - Austin Haskell
-fn outline_quadrants(img_data: &mut Vec<u8>, quadrant_width: i32, quadrant_height: i32, largest_quad_x: i32, largest_quad_y: i32, image_width: usize) {
-
-    println!("Adding outline to master. ");
-    for y in 1..=largest_quad_y {
-        let row = y * quadrant_height * image_width as i32 * 3;
-        let mut x = row;
-        while x < row + image_width as i32 * 3 {
-
-            img_data[x as usize]     = 255;
-            img_data[x as usize + 1] = 0;
-            img_data[x as usize + 2] = 0;
-
-            x += 3;
-        }
-    }
-
-    for x in 1..=largest_quad_x {
-        let column = x * quadrant_width * 3;
-        let mut y = 0; 
-        while y < quadrant_height * image_width as i32 * 3 * (largest_quad_y + 1){
-
-            let index = y as usize + column as usize;
-            if index > img_data.len() {
-                break;
-            }
-
-            img_data[index] = 255;
-            img_data[index + 1] = 0;
-            img_data[index + 2] = 0;
-
-            y += image_width as i32 * 3;
-        }
-    }
-
 
 }
 
