@@ -9,9 +9,10 @@ pub struct Translator {
     pub printbed_height: f32
 }
 
+#[derive(Clone)]
 pub struct QuadrantBlock {
-    quadrant: (i32, i32),
-    gcode: Vec<GCode::GCode>
+    pub quadrant: (i32, i32),
+    pub gcode: Vec<GCode::GCode>
 }
 
 // Note: We use absolute positioning, that allows us to segment them into quadrants. - Austin Haskell
@@ -23,8 +24,6 @@ impl Translator {
 
         let mut block_list: Vec<QuadrantBlock> = Vec::new();
         let mut last_point: (f32, f32) = points[0];
-
-        let starting_quadrant: (i32, i32) = self.CalcQuadrantForPoint(last_point);
 
         for point in points {
             if last_point == point {
@@ -41,20 +40,30 @@ impl Translator {
                 let temp = start_quadrant;
                 start_quadrant = end_quadrant;
                 end_quadrant = temp;
+            } else if start_quadrant.0 == end_quadrant.0 && start_quadrant.1 > end_quadrant.1 {
+                // Note: This could probs be joined with the if above, though it might be unreadable. 
+                let temp = start_quadrant;
+                start_quadrant = end_quadrant;
+                end_quadrant = temp;
             }
 
             if start_quadrant == end_quadrant {
-                let block = QuadrantBlock {
+                let mut block = QuadrantBlock {
                     quadrant: start_quadrant,
                     gcode: Vec::new()
                 };
 
-                let point_x = point.0 - (point.0 / self.printbed_width).floor() * self.printbed_width;
-                let point_y = point.1 - (point.1 / self.printbed_height).floor() * self.printbed_height;
+                block.gcode.push(
+                    TranslatorUtil::point_to_move_cmd(
+                        self.normalize_point_to_printbed(last_point, self.CalcQuadrantForPoint(last_point))));
 
-                block.gcode.push(TranslatorUtil::point_to_move_cmd((point_x, point_y)));
-            } else 
-            {
+                block.gcode.push(
+                    TranslatorUtil::point_to_move_cmd(
+                        self.normalize_point_to_printbed(point, self.CalcQuadrantForPoint(point))));
+
+                block_list.push(block);
+            } 
+            else {
                 // TODO: This is where that QuadrantBlock needs to come into play, we dont want to have to
                 //  parse the resulting string list a second time - Austin Haskell
 
@@ -104,21 +113,46 @@ impl Translator {
                         (last_point, point), 
                         quadrant);
 
-                    let block = QuadrantBlock {
+                    let mut block = QuadrantBlock {
                         quadrant: (quadrant.quad_x, quadrant.quad_y),
                         gcode: Vec::new()
                     };
-                    if intersection_points.len() > 0 {                        
+
+                    if intersection_points.len() == 1 {
+                        // This case will get hit when we're on the ends of a line. This 
+                        //  ______ ______ ______
+                        // |      |      |      |
+                        // |  X---|------|---X  |
+                        // |______|______|______|
+
+                        println!(
+                            "Only one intersection point found for quadrant [{:?},{:?}]. Intersection at {:?}. S:{:?} E:{:?}. Point normalized to {:?}", 
+                            quadrant.quad_x, 
+                            quadrant.quad_y, 
+                            intersection_points[0],
+                            last_point, point,
+                            self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y)));
+
+                        block.gcode.push(
+                            TranslatorUtil::point_to_move_cmd(
+                                self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y))));
+
+                        let mut p = last_point;
+                        if (quadrant.quad_x, quadrant.quad_y) == start_quadrant && self.CalcQuadrantForPoint(point) == start_quadrant {
+                            p = point;
+                        } else if (quadrant.quad_x, quadrant.quad_y) == end_quadrant && self.CalcQuadrantForPoint(point) == end_quadrant {
+                            p = point
+                        }
+
+                        block.gcode.push(
+                            TranslatorUtil::point_to_move_cmd(
+                                self.normalize_point_to_printbed(p, self.CalcQuadrantForPoint(p))));
+
+                    }
+                    else if intersection_points.len() > 0 {                        
                         for intersection_point in intersection_points {
-                            let mut intersection_x = intersection_point.0;
-                            let mut intersection_y = intersection_point.1;
-
-                            intersection_x = intersection_x - (intersection_x / quadrant.width).floor() * quadrant.width;
-                            intersection_y = intersection_y - (intersection_y / quadrant.height).floor() * quadrant.height;
-
                             block.gcode.push(TranslatorUtil::point_to_move_cmd(
-                                (intersection_x, intersection_y)
-                            ));
+                                self.normalize_point_to_printbed(intersection_point, (quadrant.quad_x,quadrant.quad_y))));
                         }
                     }
                     block_list.push(block);
@@ -185,6 +219,24 @@ impl Translator {
     pub fn CalcQuadrantForPoint(self: &Self, point: (f32, f32)) -> (i32, i32) {
         (Util::float_mod(point.0, self.printbed_width) as i32, 
          Util::float_mod(point.1, self.printbed_height) as i32)
+    }
+
+    fn normalize_point_to_printbed(self: &Self, point: (f32, f32), quadrant: (i32, i32)) -> (f32, f32){
+        let mut normalized_point = 
+            (point.0 - (point.0 / self.printbed_width).floor() * self.printbed_width,
+            point.1 - (point.1 / self.printbed_height).floor() * self.printbed_height);
+
+        // If 0 we might need to make it = printbed_width 
+        if normalized_point.0 == 0.0 && point.0 == quadrant.0 as f32 * self.printbed_width + self.printbed_width{
+            println!("Correcting x normalization for point {:?} in quadrant {:?}", point, quadrant);
+            normalized_point.0 = self.printbed_width;
+        }
+        if normalized_point.1 == 0.0 && point.1 == quadrant.1 as f32 * self.printbed_height + self.printbed_height {
+            println!("Correcting y normalization for point {:?} in quadrant {:?}", point, quadrant);
+            normalized_point.1 = self.printbed_height;
+        }
+
+        normalized_point
     }
 }
 

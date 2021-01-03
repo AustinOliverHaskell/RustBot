@@ -4,10 +4,10 @@
 #![allow(dead_code)]
 
 use std::fs::*;
-use std::fmt::Write;
-
+use std::io::Write;
 use clap::*;    
 use indicatif::{ProgressBar, ProgressStyle};
+use string_builder::Builder;
 
 mod GCode;
 use GCode::*;
@@ -93,7 +93,7 @@ fn main() {
     let preserve_aspect_ratio: bool = arguments.value_of("preserve_aspect").unwrap_or("false").parse().unwrap_or(false);
 
     println!("Running slicer with input file: {:?}", input_filename);
-    println!("Using printer dimentions of {:?} in the x direction and {:?} in the y direction", printbed_width, printbed_height);
+    println!("Using printer dimentions of {:?}mm in the x direction and {:?}mm in the y direction", printbed_width, printbed_height);
 
     let svg_data = read_to_string(input_filename);
 
@@ -117,18 +117,39 @@ fn main() {
 
     let point_list = Scalar::scale_points(parser.shapes, 1.0, 1.0);
 
+    let mut quadrant_blocks: Vec<QuadrantBlock> = Vec::new();
+    for list in point_list {
+        quadrant_blocks.append(&mut translator.Line(list));
+    }
+
+    let final_gcode = Postprocessor::postprocess(quadrant_blocks); 
+
     let output_file = File::create(output_filename);
     if output_file.is_err() {
         println!("Error: Unable to create/open output file. ");
     }
 
-    //writeln!(output_file, "w{:?} h{:?}", printbed_width, printbed_height);
-    for list in point_list {
-        let output = translator.Line(list);
-
-        for o in output {
-            //writeln!(output_file, "{}", o.Write());
-            //println!("{:?}", o.Write());
-        }
+    let mut builder = string_builder::Builder::default();
+    builder.append("w");
+    builder.append(printbed_width.to_string());
+    builder.append(" h");
+    builder.append(printbed_height.to_string());
+    builder.append('\n');
+    for gcode in final_gcode {
+        builder.append(gcode.Write());
+        builder.append('\n');
     }
+
+    let output = File::create(output_filename);
+    if output.is_err() {
+        println!("Error: Unable to create output file. Ensure that the output file name is valid and you have proper write permissions. ");
+    }
+
+    let file_write_status = output.unwrap().write_all(builder.string().unwrap().as_bytes());
+    if file_write_status.is_err() {
+        println!("Error: Was able to create file, but failed to write to it. Possible permissions issue? ");
+    }
+
+    println!("Slicing complete!");
+
 }

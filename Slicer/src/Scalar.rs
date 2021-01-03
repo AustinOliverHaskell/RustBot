@@ -34,6 +34,7 @@ pub fn remove_negatives_and_shift(points: &Vec<Vec<(f32, f32)>>) -> Vec<Vec<(f32
 
     y_min = y_min.abs();
     x_min = x_min.abs();
+    println!("Shifting by {:?} in the x direction and {:?} in the y direction to make sure that all points are positive", x_min, y_min);
 
     let mut shifted_points_list: Vec<Vec<(f32, f32)>> = Vec::new();
     for list in points {

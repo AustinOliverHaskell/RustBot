@@ -20,12 +20,12 @@
                 }
             },
             "args": [
-                "-fimage.svg",
+                "-fsmall_img.svg",
                 "-oout",
                 "-afalse",
                 "-x100",
-                "-h50",
-                "-w50"
+                "-h20",
+                "-w20"
             ],
             "cwd": "${workspaceFolder}"
         },

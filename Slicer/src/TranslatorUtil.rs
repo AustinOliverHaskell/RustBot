@@ -55,9 +55,9 @@ pub fn find_intersection_point_of_lines(line1: ((f32, f32), (f32, f32)), line2: 
 
     let line_relationships = line_segment_1.relate(&line_segment_2);
 
-    if line_relationships == LineRelation::Collinear || 
-       line_relationships == LineRelation::DivergentDisjoint || 
-       line_relationships == LineRelation::Parallel {
+    if line_relationships == LineRelation::DivergentDisjoint ||
+       line_relationships == LineRelation::Parallel ||
+       line_relationships == LineRelation::Collinear{
         return None;
     }
 

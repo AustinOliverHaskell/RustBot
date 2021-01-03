@@ -52,9 +52,9 @@ impl MasterImage {
             let mut x = row;
             while x < row + self.image_width * 3 {
     
-                self.data[x as usize]     = 255;
-                self.data[x as usize + 1] = 0;
-                self.data[x as usize + 2] = 0;
+                self.data[x as usize]     = r;
+                self.data[x as usize + 1] = g;
+                self.data[x as usize + 2] = b;
     
                 x += 3;
             }
