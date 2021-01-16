@@ -44,13 +44,13 @@ pub fn find_intersection_points_for_rectangle(line: ((f32, f32),(f32, f32)), rec
 
 pub fn find_intersection_point_of_lines(line1: ((f32, f32), (f32, f32)), line2: ((f32, f32), (f32, f32))) -> Option<(f32, f32)> {
     let line_segment_1 = LineInterval::line_segment( Line {
-        start: (line1.0.0, line1.0.1).into(),
-        end: (line1.1.0, line1.1.1).into()
+        start: ((line1.0).0, (line1.0).1).into(),
+        end: ((line1.1).0, (line1.1).1).into()
     });
 
     let line_segment_2 = LineInterval::line_segment( Line {
-        start: (line2.0.0, line2.0.1).into(),
-        end: (line2.1.0, line2.1.1).into()
+        start: ((line2.0).0, (line2.0).1).into(),
+        end: ((line2.1).0, (line2.1).1).into()
     });
 
     let line_relationships = line_segment_1.relate(&line_segment_2);

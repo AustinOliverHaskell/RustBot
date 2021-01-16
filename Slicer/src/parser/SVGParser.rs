@@ -3,6 +3,8 @@ use quick_xml::events::Event;
 
 use crate::parser::svg;
 use crate::parser::path;
+use crate::parser::polygon;
+use crate::parser::rect;
 use crate::parser::parser_defs;
 
 pub struct SVGParser {
@@ -34,8 +36,10 @@ impl SVGParser {
                                 }
                                 Err(e) => return Err(e)
                             }
+                            println!("SVG Viewbox set to {:?},{:?}", viewbox_width, viewbox_height);
+
                         },
-                        _ => println!("Unsupported start tag found. ")
+                        _ => {}
                     }
                 },
                 Ok(Event::Empty(ref e)) => {
@@ -46,8 +50,21 @@ impl SVGParser {
                                 Err(e) => return Err(e),
                                 Ok(val) => shapes.push(val)
                             }
-                            
                         },
+                        b"rect" => {
+                            let rectangle = rect::parse_svg_rect(e);
+                            match rectangle {
+                                Err(e) => return Err(e),
+                                Ok(val) => shapes.push(val)
+                            }
+                        },
+                        b"polygon" => {
+                            let polygon = polygon::parse_svg_polygon(e);
+                            match polygon {
+                                Err(e) => return Err(e),
+                                Ok(val) => shapes.push(val)
+                            }
+                        }
                         _ => print!("Got unsupported tag {:?}", e.name())
                     }
                 }

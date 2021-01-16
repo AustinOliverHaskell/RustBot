@@ -5,7 +5,7 @@
 
 use std::fs::*;
 use std::io::Write;
-use clap::*;    
+use clap::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use string_builder::Builder;
 
@@ -23,9 +23,13 @@ use TranslatorUtil::*;
 
 mod parser { 
     pub mod svg; 
+    pub mod svg_util;
+    pub mod polygon;
     pub mod path;
     pub mod SVGParser; 
     pub mod parser_defs; 
+    pub mod regex_defs;
+    pub mod rect;
 }
 use parser::*;
 
@@ -77,8 +81,8 @@ fn main() {
         .arg(Arg::with_name("preserve_aspect")
             .short("a")
             .long("aspect")
-            .takes_value(true)
-            .help("If true, will scale to the x scaling but will not honor y scaling to preserve aspect ratio in original file. Defaults to false"))
+            .takes_value(false)
+            .help("If present, will scale to the x scaling but will not honor y scaling to preserve aspect ratio in original file. Defaults to false"))
         .get_matches();
 
     let input_filename  = arguments.value_of("file").unwrap_or("input.svg");
@@ -90,7 +94,7 @@ fn main() {
     let scale_x: f32 = arguments.value_of("x_scaling").unwrap_or("1").parse().unwrap_or(1.0);
     let scale_y: f32 = arguments.value_of("y_scaling").unwrap_or("1").parse().unwrap_or(1.0);
 
-    let preserve_aspect_ratio: bool = arguments.value_of("preserve_aspect").unwrap_or("false").parse().unwrap_or(false);
+    let preserve_aspect_ratio: bool = arguments.is_present("preserve_aspect");
 
     println!("Running slicer with input file: {:?}", input_filename);
     println!("Using printer dimentions of {:?}mm in the x direction and {:?}mm in the y direction", printbed_width, printbed_height);

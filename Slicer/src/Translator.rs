@@ -15,6 +15,7 @@ pub struct QuadrantBlock {
     pub gcode: Vec<GCode::GCode>
 }
 
+// TODO: Rename this type to something more representative. Maybe call it Quandrantizer? or along those same lines. - Austin Haskell
 // Note: We use absolute positioning, that allows us to segment them into quadrants. - Austin Haskell
 impl Translator {
     pub fn Line(self: &Self, points: Vec<(f32, f32)>) -> Vec<QuadrantBlock> {
@@ -37,14 +38,14 @@ impl Translator {
             // We want to make sure that the start point is the leftmost point, this is to help
             //  with the iteration later on. - Austin Haskell
             if start_quadrant.0 > end_quadrant.0 {
-                let temp = start_quadrant;
-                start_quadrant = end_quadrant;
-                end_quadrant = temp;
-            } else if start_quadrant.0 == end_quadrant.0 && start_quadrant.1 > end_quadrant.1 {
-                // Note: This could probs be joined with the if above, though it might be unreadable. 
-                let temp = start_quadrant;
-                start_quadrant = end_quadrant;
-                end_quadrant = temp;
+                let temp = start_quadrant.0;
+                start_quadrant.0 = end_quadrant.0;
+                end_quadrant.0 = temp;
+            }
+            if start_quadrant.1 > end_quadrant.1 {
+                let temp = start_quadrant.1;
+                start_quadrant.1 = end_quadrant.1;
+                end_quadrant.1 = temp;
             }
 
             if start_quadrant == end_quadrant {
@@ -52,6 +53,12 @@ impl Translator {
                     quadrant: start_quadrant,
                     gcode: Vec::new()
                 };
+
+                if start_quadrant.0 == 2 && start_quadrant.1 == 3 {
+                    println!("Adding point: {:?} for quadrant {:?}",
+                    self.normalize_point_to_printbed(last_point, self.CalcQuadrantForPoint(last_point)),
+                        start_quadrant);    
+                }  
 
                 block.gcode.push(
                     TranslatorUtil::point_to_move_cmd(
@@ -125,23 +132,21 @@ impl Translator {
                         // |  X---|------|---X  |
                         // |______|______|______|
 
-                        println!(
-                            "Only one intersection point found for quadrant [{:?},{:?}]. Intersection at {:?}. S:{:?} E:{:?}. Point normalized to {:?}", 
-                            quadrant.quad_x, 
-                            quadrant.quad_y, 
-                            intersection_points[0],
-                            last_point, point,
-                            self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y)));
+                        if quadrant.quad_x == 2 && quadrant.quad_y == 3 {
+                            println!("Adding intersection point: {:?} for quadrant {:?}",
+                                self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y)),
+                                (quadrant.quad_x,quadrant.quad_y));    
+                        }  
 
                         block.gcode.push(
                             TranslatorUtil::point_to_move_cmd(
                                 self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y))));
 
                         let mut p = last_point;
-                        if (quadrant.quad_x, quadrant.quad_y) == start_quadrant && self.CalcQuadrantForPoint(point) == start_quadrant {
+                        if (quadrant.quad_x, quadrant.quad_y) == self.CalcQuadrantForPoint(point) {
                             p = point;
-                        } else if (quadrant.quad_x, quadrant.quad_y) == end_quadrant && self.CalcQuadrantForPoint(point) == end_quadrant {
-                            p = point
+                        } else if (quadrant.quad_x, quadrant.quad_y) == self.CalcQuadrantForPoint(last_point) {
+                            p = last_point
                         }
 
                         block.gcode.push(
@@ -149,11 +154,19 @@ impl Translator {
                                 self.normalize_point_to_printbed(p, self.CalcQuadrantForPoint(p))));
 
                     }
-                    else if intersection_points.len() > 0 {                        
+                    else if intersection_points.len() > 1{
                         for intersection_point in intersection_points {
+
+                            if quadrant.quad_x == 2 && quadrant.quad_y == 3 {
+                                println!("Adding intersection point: {:?} for quadrant {:?}",
+                                    self.normalize_point_to_printbed(intersection_point, (quadrant.quad_x,quadrant.quad_y)),
+                                    (quadrant.quad_x,quadrant.quad_y));    
+                            }       
+
                             block.gcode.push(TranslatorUtil::point_to_move_cmd(
                                 self.normalize_point_to_printbed(intersection_point, (quadrant.quad_x,quadrant.quad_y))));
                         }
+                        println!("---");
                     }
                     block_list.push(block);
                 } 
@@ -161,59 +174,8 @@ impl Translator {
 
             last_point = point;
         }
-        
+
         block_list
-    }
-
-    pub fn Polygon(self: &Self, points: Vec<(f32, f32)>) -> Vec<GCode::GCode> {
-
-        if points.len() < 3 {
-            vec![String::from("")];
-        }
-        // TODO: Infill - Austin Haskell
-
-        let mut gcode: Vec<GCode::GCode> = Vec::new();
-        let mut last_point: (f32, f32) = points[0];
-        for point in points {
-            if last_point == point {
-                continue;
-            }
-
-            let mut line: Vec<(f32, f32)> = Vec::new();
-            line.push(last_point);
-            line.push(point);
-
-            //gcode.append(&mut Translator::Line(&self, line));
-
-            last_point = point;
-        }
-
-        vec![]
-    }
-
-    pub fn Rectangle(self: &Self) -> Vec<String> {
-        vec![String::from("")]
-        // TODO: Implementation - Austin Haskell
-    }
-
-    pub fn Circle(self: &Self) -> Vec<String> {
-        vec![String::from("")]
-        // TODO: Implementation - Austin Haskell
-    }
-
-    pub fn Elipse(self: &Self) -> Vec<String> {
-        vec![String::from("")]
-        // TODO: Implementation - Austin Haskell
-    }
-
-    pub fn Polyline(self: &Self) -> Vec<String> {
-        vec![String::from("")]
-        // TODO: Implementation - Austin Haskell
-    }
-
-    pub fn Arc(self: &Self) -> Vec<String> {
-        vec![String::from("")]
-        // TODO: Implementation - Austin Haskell
     }
 
     pub fn CalcQuadrantForPoint(self: &Self, point: (f32, f32)) -> (i32, i32) {
@@ -222,17 +184,25 @@ impl Translator {
     }
 
     fn normalize_point_to_printbed(self: &Self, point: (f32, f32), quadrant: (i32, i32)) -> (f32, f32){
-        let mut normalized_point = 
-            (point.0 - (point.0 / self.printbed_width).floor() * self.printbed_width,
-            point.1 - (point.1 / self.printbed_height).floor() * self.printbed_height);
+        let mut normalized_point = point;
 
-        // If 0 we might need to make it = printbed_width 
-        if normalized_point.0 == 0.0 && point.0 == quadrant.0 as f32 * self.printbed_width + self.printbed_width{
-            println!("Correcting x normalization for point {:?} in quadrant {:?}", point, quadrant);
+        for w in 0..quadrant.0 {
+            normalized_point.0 -= self.printbed_width;
+        }
+        for h in 0..quadrant.1 {
+            normalized_point.1 -= self.printbed_width;
+        }
+
+        if normalized_point.0 < 0.0 {
+            normalized_point.0 = 0.0;
+        }
+        if normalized_point.1 < 0.0 {
+            normalized_point.1 = 0.0;
+        }
+        if normalized_point.0 > self.printbed_width {
             normalized_point.0 = self.printbed_width;
         }
-        if normalized_point.1 == 0.0 && point.1 == quadrant.1 as f32 * self.printbed_height + self.printbed_height {
-            println!("Correcting y normalization for point {:?} in quadrant {:?}", point, quadrant);
+        if normalized_point.1 > self.printbed_height {
             normalized_point.1 = self.printbed_height;
         }
 
@@ -314,84 +284,6 @@ fn Line_CrossesMultipleBoundaries_Splits() {
     let expected: Vec<GCode::GCode> = Vec::new();
 
     assert_eq!(expected, actual);
-}
-
-#[test]
-fn Polyline_CrossesBoundary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Polyline_DoesNotCrossBoundary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Arc_CrossesBondary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Arc_DoesNotCrossBondary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Polygon_CrossesBoundary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Polygon_DoesNotCrossBoundary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Rectangle_CrossesBoundary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Rectangle_DoesNotCrossBoundary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Circle_CrossesBoundary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Circle_DoesNotCrossBoundary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Elipse_CrossesBondary_Splits() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn Elipse_DoesNotCrossBondary_Translates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
-}
-
-#[test]
-fn CalcQuadrantForPoint_PointOnBoarder_Calculates() {
-    assert!(false)
-    // TODO: Implementation - Austin Haskell
 }
 
 #[test]
