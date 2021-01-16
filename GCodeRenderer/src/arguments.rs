@@ -7,7 +7,8 @@ pub struct ProgramArgs {
     pub pixel_size: u32,
     pub thread_count: u8,
     pub create_joined: bool,
-    pub outline_quadrants: bool
+    pub outline_quadrants: bool,
+    pub render_all_points: bool
 }
 
 impl ProgramArgs {
@@ -50,6 +51,11 @@ impl ProgramArgs {
                 .long("outline")
                 .takes_value(false)
                 .help("Used in conjunction with the -j command, outlines each quadrant in red. Ignored if -j is not defined. "))
+            .arg(Arg::with_name("always_render_points")
+                .short("r")
+                .long("points")
+                .takes_value(false)
+                .help("If present, will render points that have no connections. "))
             .get_matches();
 
         let input_file: &str        = run_arguments.value_of("file").unwrap_or("input.gcode");
@@ -58,6 +64,7 @@ impl ProgramArgs {
         let thread_count: u8        = run_arguments.value_of("thread_count").unwrap_or("4").parse().unwrap_or(4);
         let create_joined: bool     = run_arguments.is_present("create_joined_image");
         let outline_quadrants: bool = run_arguments.is_present("outline_quadrants_in_master");
+        let render_all_points: bool = run_arguments.is_present("always_render_points");
 
         ProgramArgs {
             input_file: String::from(input_file),
@@ -65,7 +72,8 @@ impl ProgramArgs {
             pixel_size: pixel_scalar,
             thread_count: thread_count,
             create_joined: create_joined,
-            outline_quadrants: outline_quadrants
+            outline_quadrants: outline_quadrants,
+            render_all_points: render_all_points
         }
     }
 }

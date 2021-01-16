@@ -61,6 +61,7 @@ fn main() {
     let printbed_width  = loader.settings.printbed_width as i32;
     let printbed_height = loader.settings.printbed_height as i32;
     let pixel_scaling = program_args.pixel_size as i32;
+    let draw_points = program_args.render_all_points;
 
     let workers = threadpool::ThreadPool::new(program_args.thread_count as usize);
 
@@ -75,7 +76,8 @@ fn main() {
                 &command, 
                 printbed_width, 
                 printbed_height, 
-                pixel_scaling);
+                pixel_scaling,
+                draw_points);
     
             let quad_data = RenderedQuadrant {
                 id: (command.quadrant.x, command.quadrant.y),

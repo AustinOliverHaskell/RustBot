@@ -29,12 +29,17 @@ impl PixelPoint {
 }
 
 impl Rasterizer {
-    pub fn create(gcode: &file_loader::CommandGrouping, width: i32, height: i32, scalar: i32) -> Self {
+    pub fn create(gcode: &file_loader::CommandGrouping, width: i32, height: i32, scalar: i32, render_all: bool) -> Self {
 
         let image_width:  usize = (width  * scalar) as usize; // +1 because sizing is inclusive
         let image_height: usize = (height * scalar) as usize;
         let image_size:   usize = image_width * image_height * 3; // Three bytes for the color
         let mut image_data: Vec<u8> = vec![255; image_size];
+
+        let mut pixel_scaling = (scalar as f32).sqrt().floor();
+        if pixel_scaling < 1.0 {
+            pixel_scaling = 2.0;
+        }
 
         if gcode.points.len() == 1 {
             let point = PixelPoint::from_gcode_point(gcode.points[0], image_height, scalar);
@@ -44,23 +49,24 @@ impl Rasterizer {
             let mut last_point: Option<PixelPoint> = Some(PixelPoint::from_gcode_point(gcode.points[0], image_height, scalar));
             for point in &gcode.points {
 
+                let current_point = PixelPoint::from_gcode_point(*point, image_height, scalar);
+                if render_all && point.z == 0.0 {
+                    Rasterizer::draw_point(&mut image_data, image_width, Color { r: 0, g: 0, b: 100}, pixel_scaling as i32, current_point);
+                }
+
                 // Pen Lift
                 if point.z < 0.0 {
                     last_point = None;
                     continue;
                 }
 
-                let current_point = PixelPoint::from_gcode_point(*point, image_height, scalar);
                 if last_point.is_some() {
                     if last_point.unwrap() == current_point {
                         continue;
                     }
 
-                    let mut pixel_scaling = (scalar as f32).sqrt();
-                    if pixel_scaling < 1.0 {
-                        pixel_scaling = 2.0;
-                    }
-                    Rasterizer::draw_line(&mut image_data[0..image_size], image_width, pixel_scaling.floor() as i32, last_point.unwrap(), current_point);
+                    
+                    Rasterizer::draw_line(&mut image_data[0..image_size], image_width, pixel_scaling as i32, last_point.unwrap(), current_point);
                 }
 
                 last_point = Some(current_point);
@@ -88,9 +94,6 @@ impl Rasterizer {
                 Rasterizer::draw_line_high(data, image_width, scale, start_point, end_point);
             }
         }
-
-        //Rasterizer::draw_point(data, image_width, Color { r: 0, g: 0, b: 100}, scale, start_point);
-        //Rasterizer::draw_point(data, image_width, Color { r: 0, g: 0, b: 100}, scale, end_point);
     }
 
     fn draw_line_high(data: &mut [u8], image_width: usize, scale: i32, start_point: PixelPoint, end_point: PixelPoint) {
