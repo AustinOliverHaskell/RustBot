@@ -54,12 +54,6 @@ impl Translator {
                     gcode: Vec::new()
                 };
 
-                if start_quadrant.0 == 2 && start_quadrant.1 == 3 {
-                    println!("Adding point: {:?} for quadrant {:?}",
-                    self.normalize_point_to_printbed(last_point, self.CalcQuadrantForPoint(last_point)),
-                        start_quadrant);    
-                }  
-
                 block.gcode.push(
                     TranslatorUtil::point_to_move_cmd(
                         self.normalize_point_to_printbed(last_point, self.CalcQuadrantForPoint(last_point))));
@@ -126,17 +120,12 @@ impl Translator {
                     };
 
                     if intersection_points.len() == 1 {
-                        // This case will get hit when we're on the ends of a line. This 
+                        // This case will get hit when we're on the ends of a line. Since we have 
+                        //  one of the start/end points we need to add that point to the list. 
                         //  ______ ______ ______
                         // |      |      |      |
                         // |  X---|------|---X  |
                         // |______|______|______|
-
-                        if quadrant.quad_x == 2 && quadrant.quad_y == 3 {
-                            println!("Adding intersection point: {:?} for quadrant {:?}",
-                                self.normalize_point_to_printbed(intersection_points[0], (quadrant.quad_x,quadrant.quad_y)),
-                                (quadrant.quad_x,quadrant.quad_y));    
-                        }  
 
                         block.gcode.push(
                             TranslatorUtil::point_to_move_cmd(
@@ -154,19 +143,11 @@ impl Translator {
                                 self.normalize_point_to_printbed(p, self.CalcQuadrantForPoint(p))));
 
                     }
-                    else if intersection_points.len() > 1{
+                    else if intersection_points.len() > 1 {
                         for intersection_point in intersection_points {
-
-                            if quadrant.quad_x == 2 && quadrant.quad_y == 3 {
-                                println!("Adding intersection point: {:?} for quadrant {:?}",
-                                    self.normalize_point_to_printbed(intersection_point, (quadrant.quad_x,quadrant.quad_y)),
-                                    (quadrant.quad_x,quadrant.quad_y));    
-                            }       
-
                             block.gcode.push(TranslatorUtil::point_to_move_cmd(
                                 self.normalize_point_to_printbed(intersection_point, (quadrant.quad_x,quadrant.quad_y))));
                         }
-                        println!("---");
                     }
                     block_list.push(block);
                 } 
@@ -183,6 +164,7 @@ impl Translator {
          Util::float_mod(point.1, self.printbed_height) as i32)
     }
 
+    // TODO: Clean this up. I think there's a shorter way of doing this. - Austin Haskell
     fn normalize_point_to_printbed(self: &Self, point: (f32, f32), quadrant: (i32, i32)) -> (f32, f32){
         let mut normalized_point = point;
 
