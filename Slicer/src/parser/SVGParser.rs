@@ -22,7 +22,6 @@ impl SVGParser {
         let mut shapes: Vec<parser_defs::SVGShape> = Vec::new();
         let mut processing_buffer:  Vec<u8> = Vec::new();
 
-        // TODO: Clean this up alot - Austin Haskell
         loop {
             match document.read_event(&mut processing_buffer) {
                 Ok(Event::Start(ref e)) => {

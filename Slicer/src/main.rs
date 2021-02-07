@@ -26,10 +26,15 @@ mod parser {
     pub mod svg_util;
     pub mod polygon;
     pub mod path;
+    pub mod path_defs;
     pub mod SVGParser; 
     pub mod parser_defs; 
     pub mod regex_defs;
     pub mod rect;
+    pub mod svg_commands {
+        pub mod bezier;
+        pub mod line;
+    }
 }
 use parser::*;
 mod arguments;

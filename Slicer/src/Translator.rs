@@ -9,7 +9,7 @@ pub struct Translator {
     pub printbed_height: f32
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QuadrantBlock {
     pub quadrant: (i32, i32),
     pub gcode: Vec<GCode::GCode>
@@ -232,12 +232,7 @@ fn Line_CrossesSingularBondary_Splits() {
     let actual = machine.Line(points);
 
     // TODO: Fix this test - Austin Haskell
-    let mut expected: Vec<GCode::GCode> = Vec::new();
-    /*expected.push("Q 0 0".to_string());
-    expected.push("X 0".to_string());
-    expected.push("Y 0".to_string());
-    expected.push("X 10.5".to_string());
-    expected.push("Y 10".to_string());*/
+    let mut expected: Vec<QuadrantBlock> = Vec::new();
 
     assert_eq!(expected, actual);
     // TODO: Implementation - Austin Haskell
@@ -263,9 +258,14 @@ fn Line_CrossesMultipleBoundaries_Splits() {
     // (0,0) (1,0) (1,1) (2,1) 
 
     // TODO: Finish this test - Austin Haskell
-    let expected: Vec<GCode::GCode> = Vec::new();
+    let expected: Vec<QuadrantBlock> = Vec::new();
 
-    assert_eq!(expected, actual);
+    assert_eq!(expected.len(), actual.len());
+
+    for i in 0..expected.len() {
+        assert_eq!(expected[i], actual[i]);
+    }
+    
 }
 
 #[test]

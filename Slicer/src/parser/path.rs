@@ -1,8 +1,13 @@
 use crate::parser::parser_defs;
 use crate::parser::svg_util;
 use crate::regex_defs;
+use crate::parser::svg_commands::bezier;
+use crate::parser::svg_commands::line;
+use crate::parser::path_defs;
 
 use regex::*;
+
+const BEZIER_RESOLUTION: f32 = 0.01;
 
 pub fn parse_svg_path(element: &quick_xml::events::BytesStart) -> Result<parser_defs::SVGShape, String> {
     let attribute_list = element.attributes();
@@ -34,6 +39,9 @@ pub fn parse_svg_path(element: &quick_xml::events::BytesStart) -> Result<parser_
                     Err(e) => return Err(e),
                     Ok(val) => points = val 
                 }
+
+                // TODO: Functions like transform, scale, etc that show up after data points. - Austin Haskell
+                //  Note: I think some refactoring is going to be needed to do the above todo. 
             },
             b"stroke" => color = parser_defs::map_color(&String::from_utf8(att.value.to_vec()).unwrap()),
             _ => print!("")
@@ -52,7 +60,6 @@ pub fn parse_svg_path(element: &quick_xml::events::BytesStart) -> Result<parser_
 //  time as the point data to avoid the extra loop. - Austin Haskell
 fn parse_position(data: &str) -> Result<parser_defs::SVGPoint, String> {
 
-    println!("Data: {:?}", data);
     let delimiter = Regex::new(regex_defs::COMMA_OR_SPACE).unwrap();
     let mut items: Vec<&str> = Vec::new();
     let mut pos = 1;
@@ -89,6 +96,9 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
     let mut last_point: parser_defs::SVGPoint = position;
     point_list.push(last_point);
 
+    let mut current_position = position;
+    let mut last_control_point: Option<(f32, f32)> = None;
+    let mut close_path: bool = false;
     for item in data {
         // TODO: Clean this up a bit - Austin Haskell
         let mut str_coordanates: Vec<&str> = Vec::new();
@@ -104,107 +114,226 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
         for coord in str_coordanates {
             coordanates.push(svg_util::parse_possible_float(coord));
         }
-        
+
+        let mut point: Option<parser_defs::SVGPoint> = None;
+
         match item.chars().nth(0).unwrap() {
-            'M' => {
-                // TODO: Implement positional move - Austin Haskell
-                println!("Got a new position. Ignoring now because of lack of implementation");
+            path_defs::MOVE_ABSOLUTE => {
+                let x: f32 = coordanates[0];
+                let y: f32 = coordanates[1];
+
+                current_position.x = x;
+                current_position.y = y;
             },
-            'l' => {
+            path_defs::MOVE_RELATIVE => {
+                let x: f32 = coordanates[0];
+                let y: f32 = coordanates[1];
+
+                current_position.x += x;
+                current_position.y += y;
+            }
+            path_defs::LINE_RELATIVE => {
 
                 let x: f32 = coordanates[0];
                 let y: f32 = coordanates[1];
     
-                let point = parser_defs::SVGPoint {
-                    x: last_point.x + x,
-                    y: last_point.y + y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::line_relative((x, y), (last_point.x, last_point.y)));
             },
-            'L' => {
+            path_defs::LINE_ABSOLUTE => {
                 let x: f32 = coordanates[0];
                 let y: f32 = coordanates[1];
     
-                let point = parser_defs::SVGPoint {
-                    x: x,
-                    y: y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::line_absolute((x, y)));
             },
-            'h' => {
+            path_defs::HORIZONTAL_RELATIVE => {
                 let x: f32 = coordanates[0];
     
-                let point = parser_defs::SVGPoint {
-                    x: x + last_point.x,
-                    y: last_point.y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::horizontal_line_relative(x, (last_point.x, last_point.y)));
             },
-            'H' => {
+            path_defs::HORIZONTAL_ABSOLUTE => {
                 let x: f32 = coordanates[0];
     
-                let point = parser_defs::SVGPoint {
-                    x: x,
-                    y: last_point.y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::horizontal_line_absolute((x, last_point.y)));
             },
-            'v' => {
+            path_defs::VERTICAL_RELATIVE => {
                 let y: f32 = coordanates[0];
     
-                let point = parser_defs::SVGPoint {
-                    x: last_point.x,
-                    y: y + last_point.y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::vertical_line_relative(y, (last_point.x, last_point.y)));
             },
-            'V' => {
+            path_defs::VERTICAL_ABSOLUTE => {
                 let y: f32 = coordanates[0];
     
-                let point = parser_defs::SVGPoint {
-                    x: last_point.x,
-                    y: y
-                };
-    
-                point_list.push(point);
-                last_point = point;
+                point = Some(line::vertical_line_absolute((last_point.x, y)));
+
             }
-            'C' => {
+            path_defs::CUBIC_BEZIER_ABSOLUTE => {
                 if coordanates.len() % 2 != 0 {
                     return Err(String::from("Error: Absolute Bezier curve has an insufficiant point count"));
                 }
-                let bezier_points = create_bezier_from_points(&coordanates, position);
-                for point in bezier_points {
-                    point_list.push(point);
+
+                let points = svg_util::create_xy_point_list(&coordanates);
+
+                let repeat_command_groups: i32 = (points.len() as i32) / 3 as i32;
+                for group in 1..=repeat_command_groups {
+                    let group_offset: usize = ((3 * group) - 3) as usize;
+
+                    let mut t: f32 = 0.0;
+                    while t < 1.0 {
+                        point_list.push(
+                            bezier::calculate_cubic_bezier(
+                                (current_position.x, current_position.y), 
+                                points[0 + group_offset], 
+                                points[1 + group_offset], 
+                                points[2 + group_offset], t));
+                        t += BEZIER_RESOLUTION;
+                    }
+
+                    last_control_point = Some(points[1 + group_offset]);
+                    current_position.x = points[2 + group_offset].0;
+                    current_position.y = points[2 + group_offset].1;
+
+                    point_list.push(parser_defs::SVGPoint {
+                            x: current_position.x,
+                            y: current_position.y
+                        }
+                    );
                 }
             },
-            'c' => {
+            path_defs::CUBIC_BEZIER_RELATIVE => {
                 if coordanates.len() % 2 != 0 {
                     return Err(String::from("Error: Relative Bezier curve has an insufficiant point count"));
                 }
-                let bezier_points = create_bezier_from_points(&coordanates, position);
-                for point in bezier_points {
-                    point_list.push(point);
+
+                let points = svg_util::create_xy_point_list(&coordanates);
+
+                let repeat_command_groups: i32 = (points.len() as i32) / 3 as i32;
+                for group in 1..=repeat_command_groups {
+                    let group_offset: usize = ((3 * group) - 3) as usize;
+                    let mut t: f32 = 0.0;
+                    while t < 1.0 {
+                        point_list.push(
+                            bezier::calculate_cubic_bezier(
+                                (current_position.x, current_position.y), 
+                                (points[0 + group_offset].0 + current_position.x, points[0 + group_offset].1 + current_position.y), 
+                                (points[1 + group_offset].0 + current_position.x, points[1 + group_offset].1 + current_position.y), 
+                                (points[2 + group_offset].0 + current_position.x, points[2 + group_offset].1 + current_position.y), t));
+                        t += BEZIER_RESOLUTION;
+                    }
+
+                    current_position.x += points[2 + group_offset].0;
+                    current_position.y += points[2 + group_offset].1;
+                    last_control_point = Some((points[1 + group_offset].0 + current_position.x, points[1 + group_offset].1 + current_position.y));
+
+                    point_list.push(parser_defs::SVGPoint {
+                        x: current_position.x,
+                        y: current_position.y
+                    });
                 }
             },
-            'Z' => println!("Got Z item"),
+            path_defs::SHORTHAND_CUBIC_BEZIER_ABSOLUTE => {
+                if last_control_point.is_none() {
+                    return Err(String::from("Error: Shorthand abolute bezier curve was used before a previous control point could be established. "));
+                }
+
+                if coordanates.len() % 2 != 0 {
+                    return Err(String::from("Error: Shorthand absolute Bezier curve has an insufficiant point count"));
+                }
+
+                let points = svg_util::create_xy_point_list(&coordanates);
+
+                let repeat_command_groups: i32 = (points.len() as i32) / 2 as i32;
+                for group in 1..=repeat_command_groups {
+                    let group_offset: usize = ((2 * group) - 2) as usize;
+                    let mut t: f32 = 0.0;
+                    while t < 1.0 {
+                        point_list.push(
+                            bezier::calculate_cubic_bezier(
+                                (current_position.x, current_position.y), 
+                                bezier::calculate_reflected_control_point(last_control_point.unwrap(), (current_position.x, current_position.y)), 
+                                (points[0 + group_offset].0, points[0 + group_offset].1), 
+                                (points[1 + group_offset].0, points[1 + group_offset].1), t));
+                        t += BEZIER_RESOLUTION;
+                    }
+
+                    current_position.x = points[1 + group_offset].0;
+                    current_position.y = points[1 + group_offset].1;
+                    last_control_point = Some(points[0 + group_offset]);
+
+                    point_list.push(parser_defs::SVGPoint {
+                        x: current_position.x,
+                        y: current_position.y
+                    });
+                }
+
+            },
+            path_defs::SHORTHAND_CUBIC_BEZIER_RELATIVE => {
+                if last_control_point.is_none() {
+                    return Err(String::from("Error: Shorthand reelative bezier curve was used before a previous control point could be established. "));
+                }
+
+                if coordanates.len() % 2 != 0 {
+                    return Err(String::from("Error: Shorthand relative Bezier curve has an insufficiant point count"));
+                }
+
+                let points = svg_util::create_xy_point_list(&coordanates);
+
+                let repeat_command_groups: i32 = (points.len() as i32) / 2 as i32;
+                for group in 1..=repeat_command_groups {
+                    let group_offset: usize = ((2 * group) - 2) as usize;
+                    let mut t: f32 = 0.0;
+                    while t < 1.0 {
+                        point_list.push(
+                            bezier::calculate_cubic_bezier(
+                                (current_position.x, current_position.y), 
+                                bezier::calculate_reflected_control_point(last_control_point.unwrap(), (current_position.x, current_position.y)), 
+                                (points[0 + group_offset].0 + current_position.x, points[0 + group_offset].1 + current_position.y), 
+                                (points[1 + group_offset].0 + current_position.x, points[1 + group_offset].1 + current_position.y), t));
+                        t += BEZIER_RESOLUTION;
+                    }
+
+                    last_control_point = Some((points[0 + group_offset].0 + current_position.x, points[0 + group_offset].1 + current_position.y));
+
+                    current_position.x += points[1 + group_offset].0;
+                    current_position.y += points[1 + group_offset].1;
+
+                    point_list.push(parser_defs::SVGPoint {
+                        x: current_position.x,
+                        y: current_position.y
+                    });
+                }
+            },
+            path_defs::QUADRATIC_BEZIER_ABSOLUTE => {
+
+            },
+            path_defs::QUADRATIC_BEZIER_RELATIVE => {
+
+            },
+            path_defs::SHORTHAND_QUADRATIC_BEZIER_ABSOLUTE => {
+
+            },
+            path_defs::SHORTHAND_QUADRATIC_BEZIER_RELATIVE => {
+
+            },
+            path_defs::ELIPTICAL_ARC_ABSOLUTE => {
+                println!("No implementation currently exists for eliptical arcs (A)");
+            },
+            path_defs::ELIPTICAL_ARC_RELATIVE => {
+                println!("No implementation currently exists for eliptical arcs (a)");
+            },
+            path_defs::FINISH_PATH_LOWER => close_path = true,
+            path_defs::FINISH_PATH_UPPER => close_path = true,
             _ => println!("")
         };
+
+        if point.is_some() {
+            point_list.push(point.unwrap());
+            last_point = point.unwrap();
+        }
     }
 
-    // TODO: Figure out if that always holds true. I dont think it does. That's what the Z command is for - Austin Haskell
-    // For a path, it's always closed back to the first point. - Austin Haskell
-    point_list.push(position);
+    if close_path {
+        point_list.push(position);
+    }
 
     if point_list.is_empty() {
         return Err(String::from("Error: No point data found (l), svg file is considered malformed. "));
@@ -213,65 +342,3 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
     Ok(point_list)
 }
 
-// TODO: Make a data type for this - Austin Haskell
-// Adapted from: https://stackoverflow.com/questions/31167663/how-to-code-an-nth-order-bezier-curve/31169371
-fn create_bezier_from_points(list: &Vec<f32>, position: parser_defs::SVGPoint) -> Vec<parser_defs::SVGPoint> {
-
-    let point_list = svg_util::create_xy_point_list(list);
-    let order = point_list.len()- 1;
-    println!("Creating an order {:?} bezier curve. ", order);
-
-    let mut bezier_points: Vec<parser_defs::SVGPoint> = Vec::new();
-    let mut t: f32 = 0.0;
-    while t < 1.0 {
-        let point = calculate_point_on_bezier(t, &point_list, order as i32);
-        t += 0.01;
-        if point.is_err() {
-            continue;
-        }
-
-        bezier_points.push(point.unwrap());
-    }
-
-    bezier_points
-}
-
-// Adapted from: https://stackoverflow.com/questions/31167663/how-to-code-an-nth-order-bezier-curve/31169371
-fn calculate_coefficiant(max_order: i32, order: i32) -> f32 {
-    let mut coefficiant: f32 = 1.0;
-
-    for i in (max_order - order + 1)..=max_order {
-        coefficiant = coefficiant * i as f32;
-    }
-
-    for i in 1..=order {
-        coefficiant = coefficiant / i as f32;
-    }
-
-    coefficiant
-}
-
-fn calculate_point_on_bezier(t: f32, point_list: &Vec<(f32, f32)>, order: i32) -> Result<parser_defs::SVGPoint, String> {
-
-    let mut x = 0.0;
-    let mut y = 0.0;
-
-    for i in 0..=order {
-        x = x + (calculate_coefficiant(order, i) * (1.0 - t).powf((order - i) as f32) * t.powf(i as f32) * point_list[i as usize].0);
-        y = y + (calculate_coefficiant(order, i) * (1.0 - t).powf((order - i) as f32) * t.powf(i as f32) * point_list[i as usize].1);
-    }
-
-    if x.is_infinite() {
-        println!("Got an infinite value for x. point_list: {:?}", point_list);
-        return Err(String::from("Err: Infinite value. "));
-    }
-    if y.is_infinite() {
-        println!("Got an infinite value for x. point_list: {:?}", point_list);
-        return Err(String::from("Err: Infinite value. "));
-    }
-
-    Ok(parser_defs::SVGPoint {
-        x: x,
-        y: y
-    })
-}

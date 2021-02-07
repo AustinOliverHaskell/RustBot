@@ -108,27 +108,57 @@ pub fn point_to_move_quadrant_cmd(quadrant: (i32, i32)) -> GCode::GCode {
 
 
 #[test]
-pub fn does_line_cross_rectangle_crosses() {
-    // TODO: Implementation
-    assert!(false);
+pub fn does_line_cross_rectangle_crosses() { 
+    let rect = Rectangle {
+        height: 16.0,
+        width: 16.0,
+        x: 0.0,
+        y: 0.0,
+        quad_x: 0,
+        quad_y: 0
+    };
+
+    let point1: (f32, f32) = (5.0, 5.0);
+    let point2: (f32, f32) = (18.0, 5.0);
+
+    let actual = find_intersection_points_for_rectangle((point1, point2), rect);
+    assert!(actual.len() != 0);
 }
 
 #[test]
 pub fn does_line_cross_rectangle_doesnt_cross() {
-    // TODO: Implementation
-    assert!(false);
+    let rect = Rectangle {
+        height: 16.0,
+        width: 16.0,
+        x: 0.0,
+        y: 0.0,
+        quad_x: 0,
+        quad_y: 0
+    };
+
+    let point1: (f32, f32) = (16.5, 16.5);
+    let point2: (f32, f32) = (18.0, 18.0);
+
+    let actual = find_intersection_points_for_rectangle((point1, point2), rect);
+    assert!(actual.len() == 0);
 }
 
 #[test]
 pub fn find_intersection_point_of_lines_does_not_intersect() {
-    // TODO: Implementation
-    assert!(false);
+    
+    let line1: ((f32, f32), (f32, f32)) = ((0.0, 0.0), (10.0, 10.0));
+    let line2: ((f32, f32), (f32, f32)) = ((12.0, 12.0), (20.0, 20.0));
+
+    assert!(find_intersection_point_of_lines(line1, line2).is_none());
 }
 
 #[test]
 pub fn find_intersection_point_of_lines_does_intersect() {
-    // TODO: Implementation
-    assert!(false);
+    
+    let line1: ((f32, f32), (f32, f32)) = ((0.0, 0.0), (10.0, 10.0));
+    let line2: ((f32, f32), (f32, f32)) = ((0.0, 6.0), (2.0, 0.0));
+
+    assert!(find_intersection_point_of_lines(line1, line2).is_some());
 }
 
 #[test]
@@ -154,8 +184,8 @@ fn IsQuadrantAdjacent_IsNotAdjacent() {
     let q4: (i32, i32) = (0,  10);
     let q5: (i32, i32) = (10,  0);
 
-    assert!(is_quadrant_adjacent(q1, q2));
-    assert!(is_quadrant_adjacent(q1, q3));
-    assert!(is_quadrant_adjacent(q1, q4));
-    assert!(is_quadrant_adjacent(q1, q5));
+    assert!(!is_quadrant_adjacent(q1, q2));
+    assert!(!is_quadrant_adjacent(q1, q3));
+    assert!(!is_quadrant_adjacent(q1, q4));
+    assert!(!is_quadrant_adjacent(q1, q5));
 }

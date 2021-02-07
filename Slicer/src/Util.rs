@@ -64,28 +64,14 @@ pub fn compare_gcode_line_vectors(list_a: Vec<GCode::GCode>, list_b: Vec<GCode::
 #[test]
 fn FloatMod_Calculates() {
 
-    let expected: f32 = 1.4;
+    let expected: f32 = 1.0;
     let actual: f32 = float_mod(59.8, 46.5);
 
     assert_eq!(expected, actual)
 }
 
-#[test]
-fn FloatMod_Negatives_Calculates() {
-    let expected: f32 = -1.4;
-
-    let actual_b_negative: f32 = float_mod(59.8, -46.5);
-    let actual_a_negative: f32 = float_mod(-59.8, 46.5);
-
-    assert_eq!(expected, actual_a_negative);
-    assert_eq!(expected, actual_b_negative);
-
-    let expected_2: f32 = 1.4;
-
-    let actual_c_negative: f32 = float_mod(-59.8, -46.5);
-
-    assert_eq!(expected_2, actual_c_negative);
-}
+// Note: No test for negatives because the slicer should never get fed negative points 
+//  from the pre-processor - Austin Haskell
 
 #[test]
 fn compare_gcode_line_vectors_Are_not_equal() {
