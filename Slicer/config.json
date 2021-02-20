@@ -1,0 +1,9 @@
+{
+    "input_file": "test-data/image.svg",
+    "output_file": "output.gcode",
+    "printbed_width": 50.0,
+    "printbed_height": 50.0,
+    "scaling_x": 1.0,
+    "scaling_y": 1.0,
+    "preserve_aspect": true
+}

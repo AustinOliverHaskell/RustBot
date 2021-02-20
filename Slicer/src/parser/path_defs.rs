@@ -18,3 +18,9 @@ pub const MOVE_ABSOLUTE: char = 'M';
 pub const MOVE_RELATIVE: char = 'm';
 pub const FINISH_PATH_LOWER: char = 'z';
 pub const FINISH_PATH_UPPER: char = 'Z';
+
+
+pub const QUADRATIC_POINTS_PER_GROUP: i32 = 2;
+pub const CUBIC_POINTS_PER_GROUP: i32 = 3;
+pub const SHORTHAND_CUBIC_POINTS_PER_GROUP: i32 = 2;
+pub const ELIPTICAL_ARC_POINTS_PER_GROUP: i32 = 7; // Note: This one isnt counting x, y pairings - Austin Haskell

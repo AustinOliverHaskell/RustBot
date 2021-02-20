@@ -12,7 +12,7 @@ pub fn parse_svg_polygon(element: &quick_xml::events::BytesStart) -> Result<pars
     for attribute in attribute_list {
         let unwrapped_attribute = attribute.unwrap();
         let attribute_data = &String::from_utf8(unwrapped_attribute.value.to_vec()).unwrap();
-        match unwrapped_attribute.key {
+        match unwrapped_attribute.key { 
             b"points" => {
                 println!("Polygon data: {:?}", attribute_data);
 
@@ -23,7 +23,7 @@ pub fn parse_svg_polygon(element: &quick_xml::events::BytesStart) -> Result<pars
                     let item_data: &str = &attribute_data[pos..i.start()];
                     if item_data.trim().is_empty(){
                         continue;
-                    }   
+                    }
                     raw_points.push(svg_util::parse_possible_float(item_data));
                     pos = i.end();
                 }

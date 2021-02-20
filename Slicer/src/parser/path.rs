@@ -166,6 +166,7 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
                 point = Some(line::vertical_line_absolute((last_point.x, y)));
 
             }
+            // TODO: Refactor the bezier functions -Austin Haskell
             path_defs::CUBIC_BEZIER_ABSOLUTE => {
                 if coordanates.len() % 2 != 0 {
                     return Err(String::from("Error: Absolute Bezier curve has an insufficiant point count"));
@@ -173,9 +174,9 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
 
                 let points = svg_util::create_xy_point_list(&coordanates);
 
-                let repeat_command_groups: i32 = (points.len() as i32) / 3 as i32;
+                let repeat_command_groups: i32 = (points.len() as i32) / path_defs::CUBIC_POINTS_PER_GROUP;
                 for group in 1..=repeat_command_groups {
-                    let group_offset: usize = ((3 * group) - 3) as usize;
+                    let group_offset: usize = ((path_defs::CUBIC_POINTS_PER_GROUP * group) - path_defs::CUBIC_POINTS_PER_GROUP) as usize;
 
                     let mut t: f32 = 0.0;
                     while t < 1.0 {
@@ -206,9 +207,9 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
 
                 let points = svg_util::create_xy_point_list(&coordanates);
 
-                let repeat_command_groups: i32 = (points.len() as i32) / 3 as i32;
+                let repeat_command_groups: i32 = (points.len() as i32) / path_defs::CUBIC_POINTS_PER_GROUP;
                 for group in 1..=repeat_command_groups {
-                    let group_offset: usize = ((3 * group) - 3) as usize;
+                    let group_offset: usize = ((path_defs::CUBIC_POINTS_PER_GROUP * group) - path_defs::CUBIC_POINTS_PER_GROUP) as usize;
                     let mut t: f32 = 0.0;
                     while t < 1.0 {
                         point_list.push(
@@ -241,9 +242,9 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
 
                 let points = svg_util::create_xy_point_list(&coordanates);
 
-                let repeat_command_groups: i32 = (points.len() as i32) / 2 as i32;
+                let repeat_command_groups: i32 = (points.len() as i32) / path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP as i32;
                 for group in 1..=repeat_command_groups {
-                    let group_offset: usize = ((2 * group) - 2) as usize;
+                    let group_offset: usize = ((path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP * group) - path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP) as usize;
                     let mut t: f32 = 0.0;
                     while t < 1.0 {
                         point_list.push(
@@ -277,9 +278,9 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
 
                 let points = svg_util::create_xy_point_list(&coordanates);
 
-                let repeat_command_groups: i32 = (points.len() as i32) / 2 as i32;
+                let repeat_command_groups: i32 = (points.len() as i32) / path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP as i32;
                 for group in 1..=repeat_command_groups {
-                    let group_offset: usize = ((2 * group) - 2) as usize;
+                    let group_offset: usize = ((path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP * group) - path_defs::SHORTHAND_CUBIC_POINTS_PER_GROUP) as usize;
                     let mut t: f32 = 0.0;
                     while t < 1.0 {
                         point_list.push(
@@ -303,22 +304,58 @@ fn parse_points(data: &Vec<&str>, position: parser_defs::SVGPoint) -> Result<Vec
                 }
             },
             path_defs::QUADRATIC_BEZIER_ABSOLUTE => {
-
+                println!("No implementation currently exists for quadratic bezier (Q)");
             },
             path_defs::QUADRATIC_BEZIER_RELATIVE => {
+                println!("No implementation currently exists for quadratic bezier (q)");
 
+                /*
+                if coordanates.len() % 2 != 0 {
+                    return Err(String::from("Error: Absolute Bezier curve has an insufficiant point count"));
+                }
+
+                let points = svg_util::create_xy_point_list(&coordanates);
+
+                let repeat_command_groups: i32 = (points.len() as i32) / path_defs::QUADRATIC_POINTS_PER_GROUP as i32;
+                for group in 1..=repeat_command_groups {
+                    let group_offset: usize = ((path_defs::QUADRATIC_POINTS_PER_GROUP * group) - path_defs::QUADRATIC_POINTS_PER_GROUP) as usize;
+                    let mut t: f32 = 0.0;
+                    while t < 1.0 {
+                        point_list.push(
+                            bezier::calculate_quadratic_bezier(
+                                (current_position.x, current_position.y), 
+                                (points[0 + group_offset].0 + current_position.x, points[0 + group_offset].1 + current_position.y),
+                                (points[1 + group_offset].0 + current_position.x, points[1 + group_offset].1 + current_position.y), 
+                                t));
+                        t += BEZIER_RESOLUTION;
+                    }
+
+                    current_position.x = points[1 + group_offset].0 + current_position.x;
+                    current_position.y = points[1 + group_offset].1 + current_position.y;
+                    last_control_point = Some((points[0 + group_offset].0 + current_position.x, points[0 + group_offset].1 + current_position.y));
+
+                    point_list.push(parser_defs::SVGPoint {
+                            x: current_position.x,
+                            y: current_position.y
+                        }
+                    );
+                }*/
             },
             path_defs::SHORTHAND_QUADRATIC_BEZIER_ABSOLUTE => {
-
+                println!("No implementation currently exists for shorthand quadratic bezier (T)");
             },
             path_defs::SHORTHAND_QUADRATIC_BEZIER_RELATIVE => {
-
+                println!("No implementation currently exists for shorthand quadratic bezier (t)");
             },
             path_defs::ELIPTICAL_ARC_ABSOLUTE => {
                 println!("No implementation currently exists for eliptical arcs (A)");
             },
             path_defs::ELIPTICAL_ARC_RELATIVE => {
                 println!("No implementation currently exists for eliptical arcs (a)");
+
+                if coordanates.len() % 5 != 0 {
+                    return Err(String::from("Error: Eliptical Arc relative has an insufficiant point count. Needed 5 data points"));
+                }
             },
             path_defs::FINISH_PATH_LOWER => close_path = true,
             path_defs::FINISH_PATH_UPPER => close_path = true,

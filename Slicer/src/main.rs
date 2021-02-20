@@ -34,6 +34,7 @@ mod parser {
     pub mod svg_commands {
         pub mod bezier;
         pub mod line;
+        pub mod eliptical_arcs;
     }
 }
 use parser::*;
@@ -43,7 +44,18 @@ use arguments::*;
 
 
 fn main() {
-    let program_args = ProgramArgs::new();
+    let possible_program_args = ProgramArgs::new();
+    let program_args;
+    match possible_program_args {
+        None => {
+            println!("No command line arguments specified and no config file found. Exiting. ");
+            return;
+        },
+        Some(val) => program_args = val 
+    }
+
+    // 0 ---------- Dump Arguments ----------
+    program_args.dump("run_config.json");
 
     println!("Running slicer with input file: {:?}", program_args.input_file);
     println!("Using printer dimentions of {:?}mm in the x direction and {:?}mm in the y direction", program_args.printbed_width, program_args.printbed_height);
