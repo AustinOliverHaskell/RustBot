@@ -24,3 +24,5 @@ Robot/Slicer/target/
 GCodeRenderer/output/
 
 GCodeRenderer/target/
+
+GCodeRenderer/out/
