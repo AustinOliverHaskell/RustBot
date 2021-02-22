@@ -31,7 +31,14 @@ use master_img::*;
 
 fn main() {
     
-    let program_args = ProgramArgs::new();
+    let possible_program_args = ProgramArgs::new();
+    let program_args;
+    match possible_program_args {
+        Some(val) => program_args = val,
+        None => { println!("No command line arguments given and no config file found. Exiting. "); return; }
+    }
+
+    program_args.dump("run_config");
 
     println!("Running gcode rendering on input file: {:?} and base output file name of {:?}", program_args.input_file, program_args.output_file);
     println!("Using a threadpool with {:?} workers. ", program_args.thread_count);
