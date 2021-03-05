@@ -2,7 +2,7 @@
 
 This is a repository for work on a self driving pen plotter robot. <br/>
 
-The overall project is split into four seperate projects. 
+The overall project is split into five seperate projects. 
 1) The robot itself.
 2) Procedural art generator.
 3) Custom build slicer to handle large files as well as to add custom commands.
