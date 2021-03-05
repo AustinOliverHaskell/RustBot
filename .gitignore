@@ -26,3 +26,5 @@ GCodeRenderer/output/
 GCodeRenderer/target/
 
 GCodeRenderer/out/
+
+UI/target/
