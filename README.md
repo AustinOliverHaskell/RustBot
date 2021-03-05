@@ -13,6 +13,7 @@ The overall project is split into four seperate projects.
 // todo
 <h2>The Slicer</h2>
 // todo
+
 ![image](https://github.com/AustinOliverHaskell/RustBot/blob/master/slicer_screenshot.png)
 <h2>Procedural Art</h2>
 // todo
