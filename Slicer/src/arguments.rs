@@ -19,7 +19,7 @@ impl ProgramArgs {
     pub fn new() -> Option<Self> {
 
         if env::args().len() == 1 {
-            let raw_config = read_to_string("config.json");
+            let raw_config = read_to_string("config");
             let config: ProgramArgs; 
             match raw_config {
                 Ok(val) => config = serde_json::from_str(&val).unwrap(),

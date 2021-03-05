@@ -55,7 +55,7 @@ fn main() {
     }
 
     // 0 ---------- Dump Arguments ----------
-    program_args.dump("run_config.json");
+    program_args.dump("run_config");
 
     println!("Running slicer with input file: {:?}", program_args.input_file);
     println!("Using printer dimentions of {:?}mm in the x direction and {:?}mm in the y direction", program_args.printbed_width, program_args.printbed_height);
