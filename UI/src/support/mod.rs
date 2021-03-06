@@ -6,6 +6,7 @@ use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, Ui};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
+use winit::dpi::LogicalSize;
 use std::path::Path;
 use std::time::Instant;
 
@@ -18,6 +19,8 @@ pub struct System {
     pub platform: WinitPlatform,
     pub renderer: Renderer,
     pub font_size: f32,
+    pub window_width: u32,
+    pub window_height: u32
 }
 
 pub fn init(title: &str, window_width: u32, window_height: u32) -> System {
@@ -29,7 +32,6 @@ pub fn init(title: &str, window_width: u32, window_height: u32) -> System {
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let builder = WindowBuilder::new()
         .with_title(title.to_owned())
-        .with_resizable(false)
         .with_inner_size(glutin::dpi::LogicalSize::new(window_width, window_height));
     let display =
         Display::new(builder, context, &event_loop).expect("Failed to initialize display");
@@ -81,11 +83,13 @@ pub fn init(title: &str, window_width: u32, window_height: u32) -> System {
         platform,
         renderer,
         font_size,
+        window_width,
+        window_height
     }
 }
 
 impl System {
-    pub fn main_loop<F: FnMut(&mut bool, &mut Ui) + 'static>(self, mut run_ui: F) {
+    pub fn main_loop<F: FnMut(&mut bool, &mut Ui, (u32, u32)) + 'static>(self, mut run_ui: F) {
         let System {
             event_loop,
             display,
@@ -95,6 +99,9 @@ impl System {
             ..
         } = self;
         let mut last_frame = Instant::now();
+        let mut window_width: u32 = self.window_width;
+        let mut window_height: u32 = self.window_height;
+        let mut scale_factor: f64 = display.gl_window().window().scale_factor();
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::NewEvents(_) => {
@@ -113,7 +120,7 @@ impl System {
                 let mut ui = imgui.frame();
 
                 let mut run = true;
-                run_ui(&mut run, &mut ui);
+                run_ui(&mut run, &mut ui, (window_width, window_height));
                 if !run {
                     *control_flow = ControlFlow::Exit;
                 }
@@ -146,6 +153,14 @@ impl System {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::WindowEvent {
+                event: WindowEvent::Resized(var),
+                ..
+            } => {
+                let size: LogicalSize<u32> = var.to_logical(scale_factor);
+                window_width = size.width;
+                window_height = size.height;
+           },
             event => {
                 let gl_window = display.gl_window();
                 platform.handle_event(imgui.io_mut(), gl_window.window(), &event);
